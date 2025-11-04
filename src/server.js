@@ -1,17 +1,22 @@
 import Hapi from '@hapi/hapi'
+import Joi from 'joi'
+import Jwt from '@hapi/jwt'
 
-import { secureContext } from '@defra/hapi-secure-context'
-
-import { config } from './config.js'
+import { config } from './config/config.js'
 import { router } from './plugins/router.js'
+import { swagger } from './plugins/swagger.js'
 import { requestLogger } from './common/helpers/logging/request-logger.js'
-import { mongoDb } from './common/helpers/mongodb.js'
 import { failAction } from './common/helpers/fail-action.js'
+import { secureContext } from './common/helpers/secure-context/index.js'
 import { pulse } from './common/helpers/pulse.js'
 import { requestTracing } from './common/helpers/request-tracing.js'
 import { setupProxy } from './common/helpers/proxy/setup-proxy.js'
+import { mongoDb } from './common/helpers/mongodb.js'
+import { auth } from './plugins/auth.js'
+import { mongoTimeout } from './plugins/mongo-timeout.js'
+import { polling } from './common/helpers/polling.js'
 
-async function createServer() {
+async function createServer () {
   setupProxy()
   const server = Hapi.server({
     host: config.get('host'),
@@ -39,23 +44,20 @@ async function createServer() {
     }
   })
 
-  // Hapi Plugins:
-  // requestLogger  - automatically logs incoming requests
-  // requestTracing - trace header logging and propagation
-  // secureContext  - loads CA certificates from environment config
-  // pulse          - provides shutdown handlers
-  // mongoDb        - sets up mongo connection pool and attaches to `server` and `request` objects
-  // router         - routes used in the app
+  server.validator(Joi)
+
   await server.register([
+    Jwt,
+    auth,
     requestLogger,
     requestTracing,
     secureContext,
     pulse,
-    {
-      plugin: mongoDb,
-      options: config.get('mongo')
-    },
-    router
+    mongoDb,
+    ...swagger,
+    router,
+    mongoTimeout,
+    polling
   ])
 
   return server

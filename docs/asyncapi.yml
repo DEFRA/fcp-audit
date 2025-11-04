@@ -1,0 +1,292 @@
+asyncapi: 3.0.0
+info:
+  title: FCP Farming Data Model (FDM) - Event API
+  version: 1.0.0
+  description: |
+    The FDM service consumes CloudEvents from FCP services via AWS SQS to build
+    a centralized data model for farming and countryside programmes.
+    
+    Events are consumed from `fcp_audit` SQS queue, processed through validation,
+    and stored in MongoDB collections for aggregation and querying.
+  license:
+    name: Open Government Licence v3.0
+    url: https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3
+
+defaultContentType: application/json
+
+servers:  
+  development:
+    host: localhost:4566
+    protocol: sqs
+    description: LocalStack SQS for development
+    bindings:
+      sqs:
+        region: eu-west-2
+        queueName: fcp_audit
+        deadLetterQueue:
+          name: fcp_audit-deadletter
+          maxReceiveCount: 3
+
+channels:
+  eventQueue:
+    address: fcp_audit
+    description: Main event queue for FCP service events consumed by the FDM service.
+    messages:
+      messageReceived:
+        $ref: '#/components/messages/MessageReceivedEvent'
+      messageRetry:
+        $ref: '#/components/messages/MessageRetryEvent'
+      statusUpdate:
+        $ref: '#/components/messages/StatusUpdateEvent'
+      retryExpired:
+        $ref: '#/components/messages/RetryExpiredEvent'
+
+operations:
+  consumeEvents:
+    action: receive
+    channel:
+      $ref: '#/channels/eventQueue'
+    description: |
+      Consume and process CloudEvents from the SQS queue. Events are validated,
+      stored in the events collection, and aggregated by correlation ID in the
+      messages collection.
+    messages:
+      - $ref: '#/channels/eventQueue/messages/messageReceived'
+      - $ref: '#/channels/eventQueue/messages/messageRetry'
+      - $ref: '#/channels/eventQueue/messages/statusUpdate'
+      - $ref: '#/channels/eventQueue/messages/retryExpired'
+
+components:
+  messages:
+    MessageReceivedEvent:
+      name: MessageReceivedEvent
+      title: Message Received Event
+      description: Initial message communication request received by SFD Comms service.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/MessageReceivedPayload'
+
+    MessageRetryEvent:
+      name: MessageRetryEvent
+      title: Message Retry Event
+      description: Message communication retry after a previous failure.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/MessageRetryPayload'
+
+    StatusUpdateEvent:
+      name: StatusUpdateEvent
+      title: Communication Status Update Event
+      description: Status changes in the communication lifecycle (sending, delivered, failures).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/StatusUpdatePayload'
+
+    RetryExpiredEvent:
+      name: RetryExpiredEvent
+      title: Retry Expired Event
+      description: Message communication has exhausted all retry attempts.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RetryExpiredPayload'
+
+  schemas:
+    # Message payload schemas
+    MessageReceivedPayload:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: ["uk.gov.fcp.sfd.notification.received"]
+            data:
+              $ref: '#/components/schemas/MessageReceivedData'
+
+    MessageRetryPayload:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: ["uk.gov.fcp.sfd.notification.retry"]
+            data:
+              $ref: '#/components/schemas/MessageRetryData'
+
+    StatusUpdatePayload:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - "uk.gov.fcp.sfd.notification.sending"
+                - "uk.gov.fcp.sfd.notification.delivered"
+                - "uk.gov.fcp.sfd.notification.failure.validation"
+                - "uk.gov.fcp.sfd.notification.failure.internal"
+                - "uk.gov.fcp.sfd.notification.failure.provider"
+            data:
+              $ref: '#/components/schemas/StatusUpdateData'
+
+    RetryExpiredPayload:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: ["uk.gov.fcp.sfd.notification.retry.expired"]
+            data:
+              $ref: '#/components/schemas/RetryExpiredData'
+
+    # Base CloudEvent schema
+    CloudEventBase:
+      type: object
+      required: [specversion, type, source, id, time, data]
+      properties:
+        specversion:
+          type: string
+          enum: ["1.0"]
+        type:
+          type: string
+        source:
+          type: string
+          example: "fcp-sfd-comms"
+        id:
+          type: string
+          format: uuid
+        time:
+          type: string
+          format: date-time
+        subject:
+          type: string
+        datacontenttype:
+          type: string
+          default: "application/json"
+
+    # Data schemas
+    MessageReceivedData:
+      type: object
+      required: [correlationId, sourceSystem, notifyTemplateId, recipient, personalisation, sbi, reference, emailReplyToId]
+      properties:
+        correlationId:
+          type: string
+          format: uuid
+        crn:
+          type: integer
+          minimum: 1050000000
+          maximum: 9999999999
+        sbi:
+          type: integer
+          minimum: 105000000
+          maximum: 999999999
+        sourceSystem:
+          type: string
+          pattern: "^[a-z0-9-_]+$"
+        notifyTemplateId:
+          type: string
+          format: uuid
+        commsType:
+          type: string
+          enum: ["email", "sms", "letter"]
+          default: "email"
+        recipient:
+          type: string
+        personalisation:
+          type: object
+          additionalProperties: true
+        reference:
+          type: string
+        oneClickUnsubscribeUrl:
+          type: string
+          format: uri
+        emailReplyToId:
+          type: string
+          format: uuid
+
+    MessageRetryData:
+      type: object
+      required: [correlationId, sourceSystem, notifyTemplateId, recipient, personalisation, sbi, reference, emailReplyToId]
+      properties:
+        correlationId:
+          type: string
+          format: uuid
+        crn:
+          type: integer
+          minimum: 1050000000
+          maximum: 9999999999
+        sbi:
+          type: integer
+          minimum: 105000000
+          maximum: 999999999
+        sourceSystem:
+          type: string
+          pattern: "^[a-z0-9-_]+$"
+        notifyTemplateId:
+          type: string
+          format: uuid
+        commsType:
+          type: string
+          enum: ["email", "sms", "letter"]
+          default: "email"
+        recipient:
+          type: string
+        personalisation:
+          type: object
+          additionalProperties: true
+        reference:
+          type: string
+        oneClickUnsubscribeUrl:
+          type: string
+          format: uri
+        emailReplyToId:
+          type: string
+          format: uuid
+
+    StatusUpdateData:
+      type: object
+      required: [correlationId, recipient, statusDetails]
+      properties:
+        correlationId:
+          type: string
+          format: uuid
+        recipient:
+          type: string
+        statusDetails:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: ["created", "sending", "delivered", "permanent-failure", "temporary-failure", "technical-failure", "internal-failure", "validation-failure"]
+            errorCode:
+              type: integer
+            errors:
+              type: array
+              items:
+                type: object
+                required: [error, message]
+                properties:
+                  error:
+                    type: string
+                  message:
+                    type: string
+        content:
+          type: object
+          properties:
+            subject:
+              type: string
+            body:
+              type: string
+
+    RetryExpiredData:
+      type: object
+      required: [correlationId, recipient]
+      properties:
+        correlationId:
+          type: string
+          format: uuid
+        recipient:
+          type: string
