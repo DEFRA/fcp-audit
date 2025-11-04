@@ -5,9 +5,9 @@ import { startServer } from './common/helpers/start-server.js'
 
 await startServer()
 
-process.on('unhandledRejection', (error) => {
+process.on('unhandledRejection', (err) => {
   const logger = createLogger()
   logger.info('Unhandled rejection')
-  logger.error(error)
+  logger.error(err)
   process.exitCode = 1
 })

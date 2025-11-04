@@ -1,0 +1,41 @@
+name: fcp-audit
+
+services:
+  fcp-audit:
+    ports:
+      - '3004:3004'
+    networks:
+      - fcp-audit
+
+  mongodb:
+    ports:
+      - '27017:27017'
+    networks:
+      - fcp-audit
+    volumes:
+      - mongodb-data:/data
+
+  localstack:
+    ports:
+      - '4566:4566'
+      - '4510-4559:4510-4559'
+    volumes:
+      - ./localstack/localstack.sh:/etc/localstack/init/ready.d/localstack.sh
+      - localstack-data:/var/lib/localstack
+    networks:
+      - fcp-audit
+
+  # fcp-audit-publisher-stub:
+  #   ports:
+  #     - '3005:3005'
+  #   networks:
+  #     - fcp-audit
+
+networks:
+  fcp-audit:
+    driver: bridge
+    name: fcp-audit
+
+volumes:
+  mongodb-data:
+  localstack-data:

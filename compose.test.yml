@@ -1,0 +1,15 @@
+name: fcp-audit-test
+
+services:
+  fcp-audit:
+    build:
+      target: development
+    command: npm test
+    depends_on:
+      mongodb:
+        condition: service_started
+    environment:
+      AUTH_ENABLED: false
+    volumes:
+      - ./test:/home/node/test
+      - ./coverage:/home/node/coverage

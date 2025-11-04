@@ -1,0 +1,3 @@
+services:
+  fcp-audit:
+    command: npm run test:watch
