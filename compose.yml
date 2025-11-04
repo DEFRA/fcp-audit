@@ -65,7 +65,7 @@ services:
   #   networks:
   #     - cdp-tenant
 
-  cdp-node-backend-template:
+  fcp-audit:
     build:
       context: .
       target: development
