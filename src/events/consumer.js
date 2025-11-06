@@ -29,7 +29,6 @@ export async function consumeEvents () {
 
     for (const event of Messages) {
       try {
-        console.log('Processing event:', event)
         await processEvent(event)
         processedEvents.push({ Id: event.MessageId, ReceiptHandle: event.ReceiptHandle })
       } catch (err) {
