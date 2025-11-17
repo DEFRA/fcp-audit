@@ -44,14 +44,14 @@ services:
       start_period: 5s
       retries: 3
 
-  # fcp-audit-publisher-stub:
-  #   image: defradigital/fcp-audit-publisher-stub
-  #   depends_on:
-  #     localstack:
-  #       condition: service_healthy
-  #   environment:
-  #     AWS_REGION: eu-west-2
-  #     AWS_ACCESS_KEY_ID: test
-  #     AWS_SECRET_ACCESS_KEY: test
-  #     AWS_SNS_TOPIC_ARN: arn:aws:sns:eu-west-2:000000000000:fcp_audit_publisher_stub
-  #     AWS_ENDPOINT_URL: http://localstack:4566
+  fcp-audit-publisher-stub:
+    image: defradigital/fcp-audit-publisher-stub
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      AWS_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_SNS_TOPIC_ARN: arn:aws:sns:eu-west-2:000000000000:fcp_audit_publisher_stub
+      AWS_ENDPOINT_URL: http://localstack:4566

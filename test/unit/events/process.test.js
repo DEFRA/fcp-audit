@@ -14,7 +14,7 @@ vi.mock('../../../src/events/validate.js', () => ({
 
 const mockSaveEvent = vi.fn()
 
-vi.mock('../../../src/events/save/audit.js', () => ({
+vi.mock('../../../src/events/audit.js', () => ({
   saveEvent: mockSaveEvent
 }))
 

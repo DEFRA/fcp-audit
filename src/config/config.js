@@ -230,6 +230,14 @@ const config = convict({
       default: [],
       env: 'AUTH_ALLOWED_GROUP_IDS'
     }
+  },
+  soc: {
+    enabled: {
+      doc: 'Send events to SOC',
+      format: Boolean,
+      default: true,
+      env: 'SOC_ENABLED'
+    }
   }
 })
 

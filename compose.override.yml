@@ -25,11 +25,11 @@ services:
     networks:
       - fcp-audit
 
-  # fcp-audit-publisher-stub:
-  #   ports:
-  #     - '3005:3005'
-  #   networks:
-  #     - fcp-audit
+  fcp-audit-publisher-stub:
+    ports:
+      - '3005:3005'
+    networks:
+      - fcp-audit
 
 networks:
   fcp-audit:

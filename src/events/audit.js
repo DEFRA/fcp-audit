@@ -1,5 +1,5 @@
-import { getMongoDb } from '../../common/helpers/mongodb.js'
-import { config } from '../../config/config.js'
+import { getMongoDb } from '../common/helpers/mongodb.js'
+import { config } from '../config/config.js'
 
 const maxTimeMS = config.get('mongo.maxTimeMS')
 

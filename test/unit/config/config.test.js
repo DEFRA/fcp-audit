@@ -348,4 +348,16 @@ describe('config', () => {
     process.env.AUTH_ALLOWED_GROUP_IDS = '12345678-1234-1234-1234-123456789012,12345678-1234-1234-1234-12345678901z'
     await expect(async () => await import('../../../src/config/config.js')).rejects.toThrow('Must be a comma separated list of valid UUIDs')
   })
+
+  test('should return soc enabled from environment variable', async () => {
+    process.env.SOC_ENABLED = 'false'
+    const { config } = await import('../../../src/config/config.js')
+    expect(config.get('soc.enabled')).toBe(false)
+  })
+
+  test('should default soc enabled to true if not provided in environment variable', async () => {
+    delete process.env.SOC_ENABLED
+    const { config } = await import('../../../src/config/config.js')
+    expect(config.get('soc.enabled')).toBe(true)
+  })
 })
