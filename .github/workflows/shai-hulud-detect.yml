@@ -1,4 +1,4 @@
-name: shai-hulud-detect
+name: Shai-Hulud Detection
 
 on:
   schedule:
