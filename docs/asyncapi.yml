@@ -14,7 +14,7 @@ info:
 
 defaultContentType: application/json
 
-servers:  
+servers:
   development:
     host: localhost:4566
     protocol: sqs
@@ -30,16 +30,10 @@ servers:
 channels:
   eventQueue:
     address: fcp_audit
-    description: Main event queue for FCP service events consumed by the FDM service.
+    description: Main event queue for FCP Audit events to be processed by the Auditing service.
     messages:
-      messageReceived:
-        $ref: '#/components/messages/MessageReceivedEvent'
-      messageRetry:
-        $ref: '#/components/messages/MessageRetryEvent'
-      statusUpdate:
-        $ref: '#/components/messages/StatusUpdateEvent'
-      retryExpired:
-        $ref: '#/components/messages/RetryExpiredEvent'
+      auditEvent:
+        $ref: '#/components/messages/AuditEvent'
 
 operations:
   consumeEvents:
@@ -47,246 +41,134 @@ operations:
     channel:
       $ref: '#/channels/eventQueue'
     description: |
-      Consume and process CloudEvents from the SQS queue. Events are validated,
-      stored in the events collection, and aggregated by correlation ID in the
-      messages collection.
+      Consume and process audit events from the SQS queue. Events are validated,
+      stored in the audit collection and optionally published to SOC.
     messages:
-      - $ref: '#/channels/eventQueue/messages/messageReceived'
-      - $ref: '#/channels/eventQueue/messages/messageRetry'
-      - $ref: '#/channels/eventQueue/messages/statusUpdate'
-      - $ref: '#/channels/eventQueue/messages/retryExpired'
+      - $ref: '#/channels/eventQueue/messages/auditEvent'
 
 components:
   messages:
-    MessageReceivedEvent:
-      name: MessageReceivedEvent
-      title: Message Received Event
-      description: Initial message communication request received by SFD Comms service.
+    AuditEvent:
+      name: AuditEvent
+      title: Audit Event
+      description: Audit event received by the Auditing service.
       contentType: application/json
       payload:
-        $ref: '#/components/schemas/MessageReceivedPayload'
-
-    MessageRetryEvent:
-      name: MessageRetryEvent
-      title: Message Retry Event
-      description: Message communication retry after a previous failure.
-      contentType: application/json
-      payload:
-        $ref: '#/components/schemas/MessageRetryPayload'
-
-    StatusUpdateEvent:
-      name: StatusUpdateEvent
-      title: Communication Status Update Event
-      description: Status changes in the communication lifecycle (sending, delivered, failures).
-      contentType: application/json
-      payload:
-        $ref: '#/components/schemas/StatusUpdatePayload'
-
-    RetryExpiredEvent:
-      name: RetryExpiredEvent
-      title: Retry Expired Event
-      description: Message communication has exhausted all retry attempts.
-      contentType: application/json
-      payload:
-        $ref: '#/components/schemas/RetryExpiredPayload'
+        $ref: '#/components/schemas/AuditEventPayload'
 
   schemas:
-    # Message payload schemas
-    MessageReceivedPayload:
-      allOf:
-        - $ref: '#/components/schemas/CloudEventBase'
-        - type: object
-          properties:
-            type:
-              type: string
-              enum: ["uk.gov.fcp.sfd.notification.received"]
-            data:
-              $ref: '#/components/schemas/MessageReceivedData'
-
-    MessageRetryPayload:
-      allOf:
-        - $ref: '#/components/schemas/CloudEventBase'
-        - type: object
-          properties:
-            type:
-              type: string
-              enum: ["uk.gov.fcp.sfd.notification.retry"]
-            data:
-              $ref: '#/components/schemas/MessageRetryData'
-
-    StatusUpdatePayload:
-      allOf:
-        - $ref: '#/components/schemas/CloudEventBase'
-        - type: object
-          properties:
-            type:
-              type: string
-              enum:
-                - "uk.gov.fcp.sfd.notification.sending"
-                - "uk.gov.fcp.sfd.notification.delivered"
-                - "uk.gov.fcp.sfd.notification.failure.validation"
-                - "uk.gov.fcp.sfd.notification.failure.internal"
-                - "uk.gov.fcp.sfd.notification.failure.provider"
-            data:
-              $ref: '#/components/schemas/StatusUpdateData'
-
-    RetryExpiredPayload:
-      allOf:
-        - $ref: '#/components/schemas/CloudEventBase'
-        - type: object
-          properties:
-            type:
-              type: string
-              enum: ["uk.gov.fcp.sfd.notification.retry.expired"]
-            data:
-              $ref: '#/components/schemas/RetryExpiredData'
-
-    # Base CloudEvent schema
-    CloudEventBase:
+    AuditEventPayload:
       type: object
-      required: [specversion, type, source, id, time, data]
+      required: [sessionid, correlationid, datetime, environment, version, application, component, security]
       properties:
-        specversion:
+        user:
           type: string
-          enum: ["1.0"]
-        type:
+          maxLength: 50
+          description: User identifier in format IDM/{user-guid} or AAD/{user-guid}. Optional field.
+          example: IDM/8b7c6b0a-4ea2-e911-a971-000d3a28d1a0
+        sessionid:
           type: string
-        source:
+          maxLength: 50
+          description: Session identifier for tracking user session activities
+          example: e66d78f5-a58d-46f6-a9b4-f8c90e99b6dc
+        correlationid:
           type: string
-          example: "fcp-sfd-comms"
-        id:
-          type: string
-          format: uuid
-        time:
+          maxLength: 50
+          description: Correlation identifier for tracking across multiple services
+          example: 79389915-7275-457a-b8ca-8bf206b2e67b
+        datetime:
           type: string
           format: date-time
-        subject:
+          description: Event timestamp in UTC ISO format (e.g., 2025-12-01T12:51:41.381Z)
+          example: 2025-12-01T12:51:41.381Z
+        environment:
           type: string
-        datacontenttype:
+          maxLength: 20
+          description: Environment generating the event (e.g., prod, PRD-Blue)
+          example: prod
+        version:
           type: string
-          default: "application/json"
-
-    # Data schemas
-    MessageReceivedData:
-      type: object
-      required: [correlationId, sourceSystem, notifyTemplateId, recipient, personalisation, sbi, reference, emailReplyToId]
-      properties:
-        correlationId:
+          maxLength: 10
+          description: SOC JSON message format version (e.g., 1.2)
+          example: "1.2"
+        application:
           type: string
-          format: uuid
-        crn:
-          type: integer
-          minimum: 1050000000
-          maximum: 9999999999
-        sbi:
-          type: integer
-          minimum: 105000000
-          maximum: 999999999
-        sourceSystem:
+          maxLength: 10
+          description: Application/service identifier (e.g., FCP001)
+          example: FCP001
+        component:
           type: string
-          pattern: "^[a-z0-9-_]+$"
-        notifyTemplateId:
-          type: string
-          format: uuid
-        commsType:
-          type: string
-          enum: ["email", "sms", "letter"]
-          default: "email"
-        recipient:
-          type: string
-        personalisation:
+          maxLength: 30
+          description: Application component or internal name
+          example: fcp-audit
+        security:
           type: object
-          additionalProperties: true
-        reference:
-          type: string
-        oneClickUnsubscribeUrl:
-          type: string
-          format: uri
-        emailReplyToId:
-          type: string
-          format: uuid
-
-    MessageRetryData:
-      type: object
-      required: [correlationId, sourceSystem, notifyTemplateId, recipient, personalisation, sbi, reference, emailReplyToId]
-      properties:
-        correlationId:
-          type: string
-          format: uuid
-        crn:
-          type: integer
-          minimum: 1050000000
-          maximum: 9999999999
-        sbi:
-          type: integer
-          minimum: 105000000
-          maximum: 999999999
-        sourceSystem:
-          type: string
-          pattern: "^[a-z0-9-_]+$"
-        notifyTemplateId:
-          type: string
-          format: uuid
-        commsType:
-          type: string
-          enum: ["email", "sms", "letter"]
-          default: "email"
-        recipient:
-          type: string
-        personalisation:
-          type: object
-          additionalProperties: true
-        reference:
-          type: string
-        oneClickUnsubscribeUrl:
-          type: string
-          format: uri
-        emailReplyToId:
-          type: string
-          format: uuid
-
-    StatusUpdateData:
-      type: object
-      required: [correlationId, recipient, statusDetails]
-      properties:
-        correlationId:
-          type: string
-          format: uuid
-        recipient:
-          type: string
-        statusDetails:
-          type: object
-          required: [status]
+          required: [ip, pmcode, priority]
           properties:
+            ip:
+              type: string
+              maxLength: 20
+              description: Source IP address of the event
+              example: 192.168.1.100
+            pmcode:
+              type: string
+              maxLength: 4
+              description: Protective Monitoring Code (e.g., 0706)
+              example: "0706"
+            priority:
+              type: integer
+              description: Event priority (0=normal, 5=unusual, 9=exception)
+              example: 0
+            details:
+              type: object
+              properties:
+                transactioncode:
+                  type: string
+                  maxLength: 4
+                  description: Internal transaction code within the application
+                  example: "2306"
+                message:
+                  type: string
+                  maxLength: 120
+                  description: Human-readable description of the event
+                  example: User successfully accessed audit record
+                additionalinfo:
+                  type: string
+                  maxLength: 120
+                  description: Additional context or information about the event
+                  example: Audit event successfully processed
+        audit:
+          type: object
+          description: Optional audit extension fields for local retention
+          properties:
+            eventtype:
+              type: string
+              maxLength: 120
+              description: Type of audit event (e.g., BankDetailsUpdate)
+              example: AuditRecordAccess
+            action:
+              type: string
+              maxLength: 120
+              description: Action performed (e.g., UPDATE_BANK_DETAILS)
+              example: VIEW_AUDIT_RECORD
+            entity:
+              type: string
+              maxLength: 120
+              description: Entity being audited (e.g., BankDetails)
+              example: AuditRecord
+            entityid:
+              type: string
+              maxLength: 120
+              description: Unique identifier for the entity
+              example: AUD-79389915
             status:
               type: string
-              enum: ["created", "sending", "delivered", "permanent-failure", "temporary-failure", "technical-failure", "internal-failure", "validation-failure"]
-            errorCode:
-              type: integer
-            errors:
-              type: array
-              items:
-                type: object
-                required: [error, message]
-                properties:
-                  error:
-                    type: string
-                  message:
-                    type: string
-        content:
-          type: object
-          properties:
-            subject:
-              type: string
-            body:
-              type: string
-
-    RetryExpiredData:
-      type: object
-      required: [correlationId, recipient]
-      properties:
-        correlationId:
-          type: string
-          format: uuid
-        recipient:
-          type: string
+              maxLength: 120
+              description: Status of the action (e.g., SUCCESS, FAILURE)
+              example: SUCCESS
+            details:
+              type: object
+              additionalProperties: true
+              description: Additional audit details (e.g., caseid)
+              example:
+                caseid: CRM-09384721

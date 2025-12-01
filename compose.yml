@@ -23,7 +23,7 @@ services:
       - ./package.json:/home/node/package.json
 
   mongodb:
-    image: mongo:6.0.13
+    image: mongo:7.0.24
     command: --replSet rs0 --bind_ip_all --port 27017
     attach: false
     healthcheck:

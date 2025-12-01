@@ -3,38 +3,36 @@ import { createMongoDbConnection, closeMongoDbConnection, getMongoDb } from '../
 import { config } from '../../../../src/config/config.js'
 import { saveEvent, generateAuditId } from '../../../../src/events/audit.js'
 import { clearAllCollections } from '../../../helpers/mongo.js'
+import { event } from '../../../mocks/event.js'
 
-const auditEvent = {
-  eventType: 'uk.gov.defra.fcp.user.login',
-  timestamp: '2025-11-17T10:00:00.000Z',
-  userId: 'user123',
-  sourceIp: '192.168.1.1',
-  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-  correlationId: '79389915-7275-457a-b8ca-8bf206b2e67b',
+const auditEvent = structuredClone(event)
+
+const auditEvent2 = structuredClone({
+  ...event,
+  user: 'IDM/9c8d7c1b-5fb3-f922-b082-111e4b39e2b1',
+  sessionid: 'f77e89g6-b69e-57g7-b0c5-g9d91f00c7ed',
+  correlationid: '89389915-8385-567a-c9db-9cf307c3f68c',
+  datetime: '2025-12-01T13:51:41.381Z',
   security: {
-    authType: 'oauth2'
+    ...event.security,
+    ip: '192.168.1.101',
+    details: {
+      transactioncode: '2307',
+      message: 'User logged out successfully',
+      additionalinfo: 'Session ended'
+    }
   },
   audit: {
-    action: 'login',
-    resource: 'portal'
+    ...event.audit,
+    eventtype: 'UserLogout',
+    action: 'LOGOUT',
+    entity: 'UserSession',
+    entityid: 'SES-89389915',
+    details: {
+      caseid: 'CRM-09384722'
+    }
   }
-}
-
-const auditEvent2 = {
-  eventType: 'uk.gov.defra.fcp.user.logout',
-  timestamp: '2025-11-17T11:00:00.000Z',
-  userId: 'user456',
-  sourceIp: '192.168.1.2',
-  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-  correlationId: '89389915-8385-567a-c9db-9cf307c3f68c',
-  security: {
-    authType: 'oauth2'
-  },
-  audit: {
-    action: 'logout',
-    resource: 'portal'
-  }
-}
+})
 
 let collections
 
@@ -61,11 +59,11 @@ describe('saveEvent', () => {
     const savedEvent = await collections.audit.findOne({ _id: expectedId })
 
     expect(savedEvent).toBeDefined()
-    expect(savedEvent.eventType).toBe(auditEvent.eventType)
-    expect(savedEvent.userId).toBe(auditEvent.userId)
-    expect(savedEvent.sourceIp).toBe(auditEvent.sourceIp)
-    expect(savedEvent.userAgent).toBe(auditEvent.userAgent)
-    expect(savedEvent.correlationId).toBe(auditEvent.correlationId)
+    expect(savedEvent.user).toBe(auditEvent.user)
+    expect(savedEvent.sessionid).toBe(auditEvent.sessionid)
+    expect(savedEvent.correlationid).toBe(auditEvent.correlationid)
+    expect(savedEvent.datetime).toBe(auditEvent.datetime)
+    expect(savedEvent.security.ip).toBe(auditEvent.security.ip)
   })
 
   test('should add received timestamp to saved audit event', async () => {
@@ -128,10 +126,10 @@ describe('saveEvent', () => {
     const savedEvent2 = await collections.audit.findOne({ _id: expectedId2 })
 
     expect(savedEvent1).toBeDefined()
-    expect(savedEvent1.userId).toBe(auditEvent.userId)
+    expect(savedEvent1.user).toBe(auditEvent.user)
 
     expect(savedEvent2).toBeDefined()
-    expect(savedEvent2.userId).toBe(auditEvent2.userId)
+    expect(savedEvent2.user).toBe(auditEvent2.user)
 
     const totalCount = await collections.audit.countDocuments({})
     expect(totalCount).toBe(2)

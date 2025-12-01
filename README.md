@@ -9,7 +9,7 @@
 
 The FCP Audit service is a common component to support auditing across the Farming and Countryside Programme (FCP) ecosystem.
 
-FCP Audit subscribes to events across the FCP ecosystem via an AWS SQS queue. These events are persisted for later analysis and also sent to the Security Event and Incident Management (SEIM) system for security monitoring.
+FCP Audit subscribes to events across the FCP ecosystem via an AWS SQS queue. These events are persisted for later analysis and also sent to the Security Event and Incident Management (SIEM) system for security monitoring.
 
 ## Requirements
 
@@ -154,7 +154,7 @@ services:
       - fcp-network
 
   mongodb:
-    image: mongo:6.0.13
+    image: mongo:7.0.24
     command: --replSet rs0 --bind_ip_all --port 27017
     healthcheck:
       test: test $$(mongosh --port 27017 --quiet --eval "try {rs.initiate({_id:'rs0',members:[{_id:0,host:\"mongodb:27017\"}]})} catch(e) {rs.status().ok}") -eq 1
