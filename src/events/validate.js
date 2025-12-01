@@ -1,4 +1,4 @@
-import schema from './schemas/audit-event.js'
+import schema from './schema.js'
 
 export async function validateEvent (event) {
   const validationResult = schema.validate(event, { abortEarly: false, allowUnknown: true })

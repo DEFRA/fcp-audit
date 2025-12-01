@@ -22,6 +22,6 @@ function toBase64 (str) {
 }
 
 export function generateAuditId (event) {
-  const rawId = `${event.eventType}|${event.timestamp}|${event.userId}|${event.sourceIp}|${event.userAgent}|${event.correlationId}`
+  const rawId = `${event.user}|${event.sessionid}|${event.correlationid}|${event.datetime}|${event.security.ip}`
   return toBase64(rawId)
 }

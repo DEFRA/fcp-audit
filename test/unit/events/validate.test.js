@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, vi } from 'vitest'
 
 const mockSchemaValidate = vi.fn()
 
-vi.mock('../../../src/events/schemas/audit-event.js', () => ({
+vi.mock('../../../src/events/schema.js', () => ({
   default: {
     validate: mockSchemaValidate
   }
@@ -11,7 +11,7 @@ vi.mock('../../../src/events/schemas/audit-event.js', () => ({
 let validateEvent
 
 const testEvent = {
-  type: 'uk.gov.defra.fcp.event'
+  eventtype: 'uk.gov.defra.fcp.event'
 }
 
 describe('validateEvent', () => {
