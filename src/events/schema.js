@@ -9,8 +9,8 @@ const schema = Joi.object({
   version: Joi.string().max(10).required(),
   application: Joi.string().max(10).required(),
   component: Joi.string().max(30).required(),
+  ip: Joi.string().max(20).required(),
   security: Joi.object({
-    ip: Joi.string().max(20).required(),
     pmcode: Joi.string().max(4).required(),
     priority: Joi.number().integer().required(),
     details: Joi.object({
@@ -18,7 +18,7 @@ const schema = Joi.object({
       message: Joi.string().max(120).allow(''),
       additionalinfo: Joi.string().max(120).allow('')
     }).default({})
-  }).required(),
+  }),
   audit: Joi.object({
     eventtype: Joi.string().max(120).allow(''),
     action: Joi.string().max(120).allow(''),
@@ -26,7 +26,7 @@ const schema = Joi.object({
     entityid: Joi.string().max(120).allow(''),
     status: Joi.string().max(120).allow(''),
     details: Joi.object().default({})
-  }).default({})
-}).required()
+  })
+}).required().or('audit', 'security')
 
 export default schema

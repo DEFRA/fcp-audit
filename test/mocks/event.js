@@ -7,8 +7,8 @@ export const event = {
   version: '1.2',
   application: 'FCP001',
   component: 'fcp-audit',
+  ip: '192.168.1.100',
   security: {
-    ip: '192.168.1.100',
     pmcode: '0706',
     priority: 0,
     details: {
@@ -26,5 +26,44 @@ export const event = {
     details: {
       caseid: 'CRM-09384721'
     }
+  }
+}
+
+export const auditEvent = {
+  user: 'IDM/8b7c6b0a-4ea2-e911-a971-000d3a28d1a0',
+  sessionid: 'e66d78f5-a58d-46f6-a9b4-f8c90e99b6dc',
+  datetime: '2025-12-01T12:51:41.381Z',
+  environment: 'prod',
+  version: '1.2',
+  application: 'FCP001',
+  component: 'fcp-audit',
+  ip: '192.168.1.100',
+  audit: {
+    eventtype: 'AuditRecordAccess',
+    action: 'VIEW_AUDIT_RECORD',
+    entity: 'AuditRecord',
+    entityid: 'AUD-79389915',
+    status: 'SUCCESS',
+    details: {
+      caseid: 'CRM-09384721'
+    }
+  }
+}
+
+export const socEvent = {
+  user: 'IDM/8b7c6b0a-4ea2-e911-a971-000d3a28d1a0',
+  sessionid: 'e66d78f5-a58d-46f6-a9b4-f8c90e99b6dc',
+  datetime: '2025-12-01T12:51:41.381Z',
+  environment: 'prod',
+  version: '1.2',
+  application: 'FCP001',
+  component: 'fcp-audit',
+  ip: '192.168.1.100',
+  pmcode: '0706',
+  priority: 0,
+  details: {
+    transactioncode: '2306',
+    message: 'User successfully accessed audit record',
+    additionalinfo: 'Audit event successfully processed'
   }
 }
