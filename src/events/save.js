@@ -3,12 +3,12 @@ import { config } from '../config/config.js'
 
 const maxTimeMS = config.get('mongo.maxTimeMS')
 
-export async function saveEvent (event) {
+export async function saveEvent (auditEvent) {
   const { collections } = getMongoDb()
   const { audit: auditCollection } = collections
 
   const now = new Date()
-  const auditEntity = { _id: generateAuditId(event), ...event, received: now }
+  const auditEntity = { _id: generateAuditId(auditEvent), ...auditEvent, received: now }
 
   await auditCollection.updateOne(
     { _id: auditEntity._id },
@@ -22,6 +22,6 @@ function toBase64 (str) {
 }
 
 export function generateAuditId (event) {
-  const rawId = `${event.user}|${event.sessionid}|${event.correlationid}|${event.datetime}|${event.security.ip}`
+  const rawId = `${event.application}|${event.sessionid}|${event.datetime}|${event.ip}`
   return toBase64(rawId)
 }

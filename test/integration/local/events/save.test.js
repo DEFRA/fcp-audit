@@ -1,29 +1,20 @@
 import { describe, beforeEach, beforeAll, afterAll, test, expect } from 'vitest'
 import { createMongoDbConnection, closeMongoDbConnection, getMongoDb } from '../../../../src/common/helpers/mongodb.js'
 import { config } from '../../../../src/config/config.js'
-import { saveEvent, generateAuditId } from '../../../../src/events/audit.js'
+import { saveEvent, generateAuditId } from '../../../../src/events/save.js'
 import { clearAllCollections } from '../../../helpers/mongo.js'
-import { event } from '../../../mocks/event.js'
+import { auditEvent as auditEventPayload } from '../../../mocks/event.js'
 
-const auditEvent = structuredClone(event)
+const auditEvent = structuredClone(auditEventPayload)
 
 const auditEvent2 = structuredClone({
-  ...event,
+  ...auditEventPayload,
   user: 'IDM/9c8d7c1b-5fb3-f922-b082-111e4b39e2b1',
   sessionid: 'f77e89g6-b69e-57g7-b0c5-g9d91f00c7ed',
-  correlationid: '89389915-8385-567a-c9db-9cf307c3f68c',
   datetime: '2025-12-01T13:51:41.381Z',
-  security: {
-    ...event.security,
-    ip: '192.168.1.101',
-    details: {
-      transactioncode: '2307',
-      message: 'User logged out successfully',
-      additionalinfo: 'Session ended'
-    }
-  },
+  ip: '192.168.1.101',
   audit: {
-    ...event.audit,
+    ...auditEventPayload.audit,
     eventtype: 'UserLogout',
     action: 'LOGOUT',
     entity: 'UserSession',
@@ -61,9 +52,8 @@ describe('saveEvent', () => {
     expect(savedEvent).toBeDefined()
     expect(savedEvent.user).toBe(auditEvent.user)
     expect(savedEvent.sessionid).toBe(auditEvent.sessionid)
-    expect(savedEvent.correlationid).toBe(auditEvent.correlationid)
     expect(savedEvent.datetime).toBe(auditEvent.datetime)
-    expect(savedEvent.security.ip).toBe(auditEvent.security.ip)
+    expect(savedEvent.ip).toBe(auditEvent.ip)
   })
 
   test('should add received timestamp to saved audit event', async () => {
@@ -81,14 +71,13 @@ describe('saveEvent', () => {
     expect(savedEvent.received.getTime()).toBeLessThanOrEqual(afterSave.getTime())
   })
 
-  test('should save security and audit metadata fields', async () => {
+  test('should save audit metadata fields', async () => {
     await saveEvent(auditEvent)
 
     const expectedId = generateAuditId(auditEvent)
     const savedEvent = await collections.audit.findOne({ _id: expectedId })
 
     expect(savedEvent).toBeDefined()
-    expect(savedEvent.security).toEqual(auditEvent.security)
     expect(savedEvent.audit).toEqual(auditEvent.audit)
   })
 

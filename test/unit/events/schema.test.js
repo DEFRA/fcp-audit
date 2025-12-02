@@ -218,43 +218,43 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with undefined security', () => {
+  test('should validate an event with undefined security', () => {
     event.security = undefined
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should not validate an event with null security', () => {
+  test('should validate an event with null security when audit is present', () => {
     event.security = null
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should not validate an event with missing security', () => {
+  test('should validate an event with missing security', () => {
     delete event.security
+    expect(schema.validate(event).error).toBeUndefined()
+  })
+
+  test('should not validate an event with undefined ip', () => {
+    event.ip = undefined
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with undefined security.ip', () => {
-    event.security.ip = undefined
+  test('should not validate an event with null ip', () => {
+    event.ip = null
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with null security.ip', () => {
-    event.security.ip = null
+  test('should not validate an event with missing ip', () => {
+    delete event.ip
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with missing security.ip', () => {
-    delete event.security.ip
+  test('should not validate an event with empty ip', () => {
+    event.ip = ''
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with empty security.ip', () => {
-    event.security.ip = ''
-    expect(schema.validate(event).error).toBeDefined()
-  })
-
-  test('should not validate an event with security.ip exceeding 20 characters', () => {
-    event.security.ip = 'A'.repeat(21)
+  test('should not validate an event with ip exceeding 20 characters', () => {
+    event.ip = 'A'.repeat(21)
     expect(schema.validate(event).error).toBeDefined()
   })
 
@@ -403,9 +403,9 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should not validate an event with null audit', () => {
+  test('should validate an event with null audit when security is present', () => {
     event.audit = null
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
   test('should validate an event with undefined audit.eventtype', () => {
@@ -526,5 +526,41 @@ describe('audit event schema', () => {
   test('should not validate an event with null audit.details', () => {
     event.audit.details = null
     expect(schema.validate(event).error).toBeDefined()
+  })
+
+  test('should validate an event with both audit and security', () => {
+    expect(schema.validate(event).error).toBeUndefined()
+  })
+
+  test('should validate an event with only audit', () => {
+    delete event.security
+    expect(schema.validate(event).error).toBeUndefined()
+  })
+
+  test('should validate an event with only security', () => {
+    delete event.audit
+    expect(schema.validate(event).error).toBeUndefined()
+  })
+
+  test('should not validate an event with neither audit nor security', () => {
+    delete event.audit
+    delete event.security
+    expect(schema.validate(event).error).toBeDefined()
+  })
+
+  test('should not validate an event with both audit and security as null', () => {
+    event.audit = null
+    event.security = null
+    expect(schema.validate(event).error).toBeDefined()
+  })
+
+  test('should validate an event with null audit and valid security', () => {
+    event.audit = null
+    expect(schema.validate(event).error).toBeUndefined()
+  })
+
+  test('should validate an event with null security and valid audit', () => {
+    event.security = null
+    expect(schema.validate(event).error).toBeUndefined()
   })
 })
