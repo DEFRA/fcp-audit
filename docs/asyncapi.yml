@@ -59,12 +59,12 @@ components:
   schemas:
     AuditEventPayload:
       type: object
-      required: [sessionid, correlationid, datetime, environment, version, application, component, security]
+      required: [sessionid, correlationid, datetime, environment, version, application, component, ip]
       properties:
         user:
           type: string
           maxLength: 50
-          description: User identifier in format IDM/{user-guid} or AAD/{user-guid}. Optional field.
+          description: User identifier in format IDM/{user-guid} or AAD/{user-guid}. Optional field, can be empty string.
           example: IDM/8b7c6b0a-4ea2-e911-a971-000d3a28d1a0
         sessionid:
           type: string
@@ -101,15 +101,17 @@ components:
           maxLength: 30
           description: Application component or internal name
           example: fcp-audit
+        ip:
+          type: string
+          maxLength: 20
+          description: Source IP address of the event
+          example: 192.168.1.100
         security:
           type: object
-          required: [ip, pmcode, priority]
+          nullable: true
+          description: Security event data for SOC. At least one of security or audit must be provided.
+          required: [pmcode, priority]
           properties:
-            ip:
-              type: string
-              maxLength: 20
-              description: Source IP address of the event
-              example: 192.168.1.100
             pmcode:
               type: string
               maxLength: 4
@@ -139,7 +141,8 @@ components:
                   example: Audit event successfully processed
         audit:
           type: object
-          description: Optional audit extension fields for local retention
+          nullable: true
+          description: Audit extension fields for local retention. At least one of security or audit must be provided.
           properties:
             eventtype:
               type: string
@@ -172,3 +175,8 @@ components:
               description: Additional audit details (e.g., caseid)
               example:
                 caseid: CRM-09384721
+      description: |
+        At least one of 'security' or 'audit' must be provided and not null.
+        If only security is provided, the event is sent to SOC only.
+        If only audit is provided, the event is saved to the audit database only.
+        If both are provided, the event is sent to SOC and saved to the audit database.

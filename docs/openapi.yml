@@ -1,0 +1,382 @@
+openapi: 3.1.0
+info:
+  title: FCP Audit service - REST API
+  version: 1.0.0
+  description: |
+    The Audit service REST API provides access to aggregated farming and 
+    countryside programme data collected from various FCP services.
+  license:
+    name: Open Government Licence v3.0
+    url: https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3
+
+servers:
+  - url: http://localhost:3004
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Service health check
+      description: |
+        Returns the health status of the FDM service. This endpoint can be used
+        for monitoring, load balancer health checks, and service discovery.
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy and operational
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                success:
+                  summary: Healthy service response
+                  value:
+                    message: "success"
+        '500':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Service error response
+                  value:
+                    statusCode: 500
+                    error: "Internal Server Error"
+                    message: "Service temporarily unavailable"
+
+  /documentation:
+    get:
+      tags:
+        - Documentation
+      summary: API documentation
+      description: |
+        Interactive API documentation powered by Swagger UI. Available only in
+        development mode for exploring the API endpoints and schemas.
+      operationId: getDocumentation
+      security: []
+      responses:
+        '200':
+          description: Swagger UI documentation page
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Documentation not available (production mode)
+
+  /api/v1/audit:
+    get:
+      tags:
+        - Audit
+      summary: Get all audit events
+      description: |
+        Retrieve all audit events with pagination support.
+        
+        **Authentication Required**: This endpoint requires a valid JWT Bearer token from Microsoft Entra ID 
+        with appropriate security group membership.
+      operationId: getAuditEvents
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Authorization
+          in: header
+          description: Bearer token for authentication
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik..."
+          style: simple
+        - name: page
+          in: query
+          description: Page number for paginated results (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 2
+        - name: pageSize
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 10
+      responses:
+        '200':
+          description: Successfully retrieved audit events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuditEventsResponse'
+              examples:
+                basic:
+                  summary: Basic paginated audit events response
+                  value:
+                    data:
+                      events:
+                        - _id: "SURNLzhiN2M2YjBhLTRlYTItZTkxMS1hOTcxLTAwMGQzYTI4ZDFhMHxlNjZkNzhmNS1hNThkLTQ2ZjYtYTliNC1mOGM5MGU5OWI2ZGN8MjAyNS0xMi0wMVQxMjo1MTo0MS4zODFafDE5Mi4xNjguMS4xMDA="
+                          user: "IDM/8b7c6b0a-4ea2-e911-a971-000d3a28d1a0"
+                          sessionid: "e66d78f5-a58d-46f6-a9b4-f8c90e99b6dc"
+                          datetime: "2025-12-01T12:51:41.381Z"
+                          environment: "prod"
+                          version: "1.2"
+                          application: "FCP001"
+                          component: "fcp-audit"
+                          ip: "192.168.1.100"
+                          audit:
+                            eventtype: "AuditRecordAccess"
+                            action: "VIEW_AUDIT_RECORD"
+                            entity: "AuditRecord"
+                            entityid: "AUD-79389915"
+                            status: "SUCCESS"
+                            details:
+                              caseid: "CRM-09384721"
+                          received: "2025-12-01T12:51:42.000Z"
+                    links:
+                      self: "/api/v1/audit?page=1&pageSize=20"
+                      next: "/api/v1/audit?page=2&pageSize=20"
+                      prev: null
+                    meta:
+                      page: 1
+                      pageSize: 20
+        '401':
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Missing or invalid token
+                  value:
+                    statusCode: 401
+                    error: "Unauthorized"
+                    message: "Missing or invalid authentication token"
+        '403':
+          description: Forbidden - Valid token but insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                forbidden:
+                  summary: Insufficient permissions
+                  value:
+                    statusCode: 403
+                    error: "Forbidden"
+                    message: "User does not have required security group membership"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Health status message
+          example: "success"
+      required:
+        - message
+    
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code
+          example: 500
+        error:
+          type: string
+          description: Error type
+          example: "Internal Server Error"
+        message:
+          type: string
+          description: Error message
+          example: "Service temporarily unavailable"
+      required:
+        - statusCode
+        - error
+        - message
+
+    AuditEvent:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Base64 encoded composite ID generated from user, sessionid, datetime, and ip
+          example: "SURNLzhiN2M2YjBhLTRlYTItZTkxMS1hOTcxLTAwMGQzYTI4ZDFhMHxlNjZkNzhmNS1hNThkLTQ2ZjYtYTliNC1mOGM5MGU5OWI2ZGN8MjAyNS0xMi0wMVQxMjo1MTo0MS4zODFafDE5Mi4xNjguMS4xMDA="
+        user:
+          type: string
+          maxLength: 50
+          description: User identifier in format IDM/{user-guid} or AAD/{user-guid}
+          example: "IDM/8b7c6b0a-4ea2-e911-a971-000d3a28d1a0"
+        sessionid:
+          type: string
+          maxLength: 50
+          description: Session identifier for tracking user session activities
+          example: "e66d78f5-a58d-46f6-a9b4-f8c90e99b6dc"
+        datetime:
+          type: string
+          format: date-time
+          description: Event timestamp in UTC ISO format
+          example: "2025-12-01T12:51:41.381Z"
+        environment:
+          type: string
+          maxLength: 20
+          description: Environment generating the event
+          example: "prod"
+        version:
+          type: string
+          maxLength: 10
+          description: SOC JSON message format version
+          example: "1.2"
+        application:
+          type: string
+          maxLength: 10
+          description: Application/service identifier
+          example: "FCP001"
+        component:
+          type: string
+          maxLength: 30
+          description: Application component or internal name
+          example: "fcp-audit"
+        ip:
+          type: string
+          maxLength: 20
+          description: Source IP address of the event
+          example: "192.168.1.100"
+        audit:
+          type: object
+          description: Audit extension fields for local retention
+          properties:
+            eventtype:
+              type: string
+              maxLength: 120
+              description: Type of audit event
+              example: "AuditRecordAccess"
+            action:
+              type: string
+              maxLength: 120
+              description: Action performed
+              example: "VIEW_AUDIT_RECORD"
+            entity:
+              type: string
+              maxLength: 120
+              description: Entity being audited
+              example: "AuditRecord"
+            entityid:
+              type: string
+              maxLength: 120
+              description: Unique identifier for the entity
+              example: "AUD-79389915"
+            status:
+              type: string
+              maxLength: 120
+              description: Status of the action
+              example: "SUCCESS"
+            details:
+              type: object
+              additionalProperties: true
+              description: Additional audit details
+              example:
+                caseid: "CRM-09384721"
+        received:
+          type: string
+          format: date-time
+          description: When the event was received by the audit service
+          example: "2025-12-01T12:51:42.000Z"
+      required:
+        - _id
+        - sessionid
+        - datetime
+        - environment
+        - version
+        - application
+        - component
+        - ip
+        - received
+
+    PaginatedAuditEventsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            events:
+              type: array
+              items:
+                $ref: '#/components/schemas/AuditEvent'
+          required:
+            - events
+        links:
+          type: object
+          description: Pagination links for navigation
+          properties:
+            self:
+              type: string
+              format: uri
+              description: Link to the current page
+            next:
+              type:
+                - string
+                - 'null'
+              format: uri
+              description: Link to the next page, if available
+            prev:
+              type:
+                - string
+                - 'null'
+              format: uri
+              description: Link to the previous page, if available
+          required:
+            - self
+        meta:
+          type: object
+          description: Pagination metadata
+          properties:
+            page:
+              type: integer
+              description: Current page number
+            pageSize:
+              type: integer
+              description: Number of items per page
+          required:
+            - page
+            - pageSize
+      required:
+        - data
+        - links
+        - meta
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Bearer token authentication using Microsoft Entra ID.
+        
+        **Token Requirements:**
+        - Valid JWT token from Microsoft Entra ID
+        - Token must include security groups in claims
+        - User must be member of authorized security groups
+        
+        **Header Format:** `Authorization: Bearer <jwt-token>`
+        
+        **Example Usage:**
+        ```
+        Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik...
+        ```
