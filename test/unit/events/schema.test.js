@@ -223,9 +223,9 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should not validate an event with null security', () => {
+  test('should validate an event with null security when audit is present', () => {
     event.security = null
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
   test('should validate an event with missing security', () => {
@@ -403,9 +403,9 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should not validate an event with null audit', () => {
+  test('should validate an event with null audit when security is present', () => {
     event.audit = null
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
   test('should validate an event with undefined audit.eventtype', () => {
@@ -546,5 +546,21 @@ describe('audit event schema', () => {
     delete event.audit
     delete event.security
     expect(schema.validate(event).error).toBeDefined()
+  })
+
+  test('should not validate an event with both audit and security as null', () => {
+    event.audit = null
+    event.security = null
+    expect(schema.validate(event).error).toBeDefined()
+  })
+
+  test('should validate an event with null audit and valid security', () => {
+    event.audit = null
+    expect(schema.validate(event).error).toBeUndefined()
+  })
+
+  test('should validate an event with null security and valid audit', () => {
+    event.security = null
+    expect(schema.validate(event).error).toBeUndefined()
   })
 })

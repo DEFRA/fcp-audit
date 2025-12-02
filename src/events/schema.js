@@ -18,7 +18,7 @@ const schema = Joi.object({
       message: Joi.string().max(120).allow(''),
       additionalinfo: Joi.string().max(120).allow('')
     }).default({})
-  }),
+  }).allow(null),
   audit: Joi.object({
     eventtype: Joi.string().max(120).allow(''),
     action: Joi.string().max(120).allow(''),
@@ -26,7 +26,14 @@ const schema = Joi.object({
     entityid: Joi.string().max(120).allow(''),
     status: Joi.string().max(120).allow(''),
     details: Joi.object().default({})
-  })
-}).required().or('audit', 'security')
+  }).allow(null)
+}).required().custom((value, helpers) => {
+  if ((!value.audit || value.audit === null) && (!value.security || value.security === null)) {
+    return helpers.error('object.missingAuditOrSecurity')
+  }
+  return value
+}).messages({
+  'object.missingAuditOrSecurity': 'at least one of "audit" or "security" must be provided and not null'
+})
 
 export default schema

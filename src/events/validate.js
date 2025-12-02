@@ -6,4 +6,11 @@ export async function validateEvent (event) {
   if (validationResult.error) {
     throw new Error(`Event is invalid, ${validationResult.error.message}`)
   }
+
+  if (event.security === null) {
+    delete event.security
+  }
+  if (event.audit === null) {
+    delete event.audit
+  }
 }
