@@ -15,6 +15,7 @@ import { mongoDb } from './common/helpers/mongodb.js'
 import { auth } from './plugins/auth.js'
 import { mongoTimeout } from './plugins/mongo-timeout.js'
 import { polling } from './common/helpers/polling.js'
+import { apiv } from './plugins/apiv.js'
 
 async function createServer () {
   setupProxy()
@@ -55,10 +56,12 @@ async function createServer () {
     pulse,
     mongoDb,
     ...swagger,
-    router,
+    apiv,
     mongoTimeout,
     polling
   ])
+
+  await server.register(router)
 
   return server
 }
