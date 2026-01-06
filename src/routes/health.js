@@ -3,6 +3,7 @@ const health = {
   path: '/health',
   options: {
     auth: false,
+    plugins: { apiv: false },
     description: 'Health check endpoint',
     notes: 'Returns a simple success message to indicate the service is running',
     tags: ['api', 'health']
