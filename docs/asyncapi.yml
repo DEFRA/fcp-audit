@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: FCP Farming Data Model (FDM) - Event API
-  version: 1.0.0
+  version: 0.1.0
   description: |
     The FDM service consumes CloudEvents from FCP services via AWS SQS to build
     a centralized data model for farming and countryside programmes.
