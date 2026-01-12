@@ -3,11 +3,10 @@ info:
   title: FCP Farming Data Model (FDM) - Event API
   version: 0.1.0
   description: |
-    The FDM service consumes CloudEvents from FCP services via AWS SQS to build
-    a centralized data model for farming and countryside programmes.
-    
-    Events are consumed from `fcp_audit` SQS queue, processed through validation,
-    and stored in MongoDB collections for aggregation and querying.
+    The FDM service consumes audit events from FCP services via AWS SQS.
+
+    Events are either forwarded to the Security Operations Centre (SOC) for security monitoring,
+    or stored in the audit database for future analysis.
   license:
     name: Open Government Licence v3.0
     url: https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3
@@ -59,120 +58,179 @@ components:
   schemas:
     AuditEventPayload:
       type: object
-      required: [sessionid, correlationid, datetime, environment, version, application, component, ip]
+      required:
+        - correlationid
+        - datetime
+        - environment
+        - version
+        - application
+        - component
       properties:
         user:
           type: string
           maxLength: 50
-          description: User identifier in format IDM/{user-guid} or AAD/{user-guid}. Optional field, can be empty string.
+          description: |
+            User account triggering the event. One of:
+            - IDM/contactId - Defra ID
+            - AAD/userId - Entra
+            Not required if activity is not related to a user session (e.g., scheduled task or system trigger).
           example: IDM/8b7c6b0a-4ea2-e911-a971-000d3a28d1a0
         sessionid:
           type: string
           maxLength: 50
-          description: Session identifier for tracking user session activities
+          description: |
+            Session identifier associated with the user. One of:
+            - sessionId property from JWT - Defra ID
+            - sid property from JWT - Entra
+            Not required if activity is not related to a user session (e.g., scheduled task or system trigger).
           example: e66d78f5-a58d-46f6-a9b4-f8c90e99b6dc
         correlationid:
           type: string
           maxLength: 50
-          description: Correlation identifier for tracking across multiple services
+          description: |
+            How event can be traced across user journey. For transactions end to end hosted on CDP, 
+            this should be the value of the x-cdp-request-id HTTP header. Where the request involves 
+            an asynchronous API such as SQS, the provider service should ensure this value is passed 
+            as a correlationid property downstream to allow the full transaction to be audited downstream.
           example: 79389915-7275-457a-b8ca-8bf206b2e67b
         datetime:
           type: string
           format: date-time
-          description: Event timestamp in UTC ISO format (e.g., 2025-12-01T12:51:41.381Z)
+          description: UTC ISO 8601 timestamp when event was created
           example: 2025-12-01T12:51:41.381Z
         environment:
           type: string
           maxLength: 20
-          description: Environment generating the event (e.g., prod, PRD-Blue)
-          example: prod
+          description: |
+            Environment event emitted from. Should be provided in lower case. Values include:
+            - local (Local development)
+            - cdp-dev, cdp-test, cdp-perf-test, cdp-ext-test, cdp-prod (CDP)
+            - fcp-dev, fcp-test, fcp-preprod, fcp-prod (FCP Platform)
+            The value is automatically converted to lowercase by the service.
+          example: fcp-prod
         version:
           type: string
           maxLength: 10
-          description: SOC JSON message format version (e.g., 1.2)
-          example: "1.2"
+          description: |
+            Version of SOC event schema the event conforms to. This can be taken from the AsyncAPI spec document. 
+            Until version 1.0.0 is published, the schema should be considered a volatile work in progress. 
+            The Audit service will only support the latest version.
+          example: "0.1.0"
         application:
           type: string
-          maxLength: 10
-          description: Application/service identifier (e.g., FCP001)
+          maxLength: 30
+          description: GIO code referring to the source system (e.g., Single Front Door)
           example: FCP001
         component:
           type: string
           maxLength: 30
-          description: Application component or internal name
-          example: fcp-audit
+          description: Specific component or microservice of the source system. Typically this would align to the CDP service name and GitHub repository.
+          example: fcp-sfd-frontend
         ip:
           type: string
           maxLength: 20
-          description: Source IP address of the event
+          description: |
+            IP address the request originated from. Rules:
+            - If the service is a backend API, the IP should relate to the frontend or other service the request came from.
+            - If the service is a frontend service, the IP should relate to the user's IP and not any infrastructure gateway IPs.
+            - If request originates from within the service itself (scheduled task/system trigger), then the self host IP should be provided.
+            Optional field.
           example: 192.168.1.100
         security:
           type: object
           nullable: true
-          description: Security event data for SOC. At least one of security or audit must be provided.
-          required: [pmcode, priority]
+          description: |
+            Object containing security event data. If present, event data will be sent to SOC. 
+            At least one of security or audit must be provided.
+          required:
+            - pmcode
           properties:
             pmcode:
               type: string
               maxLength: 4
-              description: Protective Monitoring Code (e.g., 0706)
-              example: "0706"
+              description: |
+                SOC event code most relevant to event. Should be 4 digits. If dashes are provided (e.g., 02-01), 
+                the Audit service will automatically remove them before they are sent to the SOC. 
+                See SOC documentation for full list of existing event codes.
+              example: "0201"
             priority:
               type: integer
-              description: Event priority (0=normal, 5=unusual, 9=exception)
+              minimum: 0
+              maximum: 9
+              default: 0
+              description: |
+                Number from 0-9 indicating rareness of event:
+                - 0 = normal event
+                - 5 = unusual event
+                - 9 = exception event
+                If not provided, will default to 0.
               example: 0
             details:
               type: object
+              description: Object containing context-specific security details
               properties:
                 transactioncode:
                   type: string
                   maxLength: 4
-                  description: Internal transaction code within the application
+                  description: Context specific event code. Naming convention should be agreed with SOC team if SOC ruleset required.
                   example: "2306"
                 message:
                   type: string
                   maxLength: 120
-                  description: Human-readable description of the event
+                  description: String containing additional context
                   example: User successfully accessed audit record
                 additionalinfo:
                   type: string
                   maxLength: 120
-                  description: Additional context or information about the event
+                  description: String containing additional context specific properties (must be string, not JSON)
                   example: Audit event successfully processed
         audit:
           type: object
           nullable: true
-          description: Audit extension fields for local retention. At least one of security or audit must be provided.
+          description: |
+            Object containing audit data. If present, data will be persisted within the Audit service for future analysis. 
+            At least one of security or audit must be provided.
+          required:
+            - eventtype
           properties:
             eventtype:
               type: string
               maxLength: 120
-              description: Type of audit event (e.g., BankDetailsUpdate)
-              example: AuditRecordAccess
+              description: |
+                Context specific event type. This is the minimum data to be persisted for future analysis.
+              example: BankDetailsUpdate
             action:
               type: string
               maxLength: 120
-              description: Action performed (e.g., UPDATE_BANK_DETAILS)
-              example: VIEW_AUDIT_RECORD
+              description: |
+                Specific action performed. Typically one of:
+                - create
+                - read
+                - update
+                - delete
+              example: update
             entity:
               type: string
               maxLength: 120
-              description: Entity being audited (e.g., BankDetails)
-              example: AuditRecord
+              description: Description of the entity being audited (e.g., Bank Details)
+              example: Bank Details
             entityid:
               type: string
               maxLength: 120
-              description: Unique identifier for the entity
+              description: Identifier of entity being updated. This could be a primary key, unique reference, etc.
               example: AUD-79389915
             status:
               type: string
               maxLength: 120
-              description: Status of the action (e.g., SUCCESS, FAILURE)
-              example: SUCCESS
+              description: |
+                Status of event. Typically one of:
+                - success
+                - failure
+              example: success
             details:
               type: object
               additionalProperties: true
-              description: Additional audit details (e.g., caseid)
+              description: Object containing context specific additional auditing data to be queried (e.g., caseid for CRM case IDs)
               example:
                 caseid: CRM-09384721
       description: |
