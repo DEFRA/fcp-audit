@@ -202,8 +202,8 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with application exceeding 10 characters', () => {
-    event.application = 'A'.repeat(11)
+  test('should not validate an event with application exceeding 30 characters', () => {
+    event.application = 'A'.repeat(31)
     expect(schema.validate(event).error).toBeDefined()
   })
 
