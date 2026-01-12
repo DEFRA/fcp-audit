@@ -143,6 +143,20 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
+  test('should convert environment to lowercase', () => {
+    event.environment = 'PRODUCTION'
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.environment).toBe('production')
+  })
+
+  test('should convert mixed case environment to lowercase', () => {
+    event.environment = 'DeVeLoPmEnT'
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.environment).toBe('development')
+  })
+
   test('should not validate an event with undefined version', () => {
     event.version = undefined
     expect(schema.validate(event).error).toBeDefined()

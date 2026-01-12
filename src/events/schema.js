@@ -5,7 +5,7 @@ const schema = Joi.object({
   sessionid: Joi.string().max(50).required(),
   correlationid: Joi.string().max(50).required(),
   datetime: Joi.date().iso().required(),
-  environment: Joi.string().max(20).required(),
+  environment: Joi.string().lowercase().max(20).required(),
   version: Joi.string().max(10).required(),
   application: Joi.string().max(10).required(),
   component: Joi.string().max(30).required(),
