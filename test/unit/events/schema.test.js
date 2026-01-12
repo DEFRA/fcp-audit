@@ -440,14 +440,14 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should validate an event with undefined audit.eventtype', () => {
+  test('should not validate an event with undefined audit.eventtype', () => {
     event.audit.eventtype = undefined
-    expect(schema.validate(event).error).toBeUndefined()
+    expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should validate an event with empty audit.eventtype', () => {
+  test('should not validate an event with empty audit.eventtype', () => {
     event.audit.eventtype = ''
-    expect(schema.validate(event).error).toBeUndefined()
+    expect(schema.validate(event).error).toBeDefined()
   })
 
   test('should not validate an event with null audit.eventtype', () => {

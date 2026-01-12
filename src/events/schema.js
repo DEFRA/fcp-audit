@@ -20,7 +20,7 @@ const schema = Joi.object({
     }).default({})
   }).allow(null),
   audit: Joi.object({
-    eventtype: Joi.string().max(120).allow(''),
+    eventtype: Joi.string().max(120).required(),
     action: Joi.string().max(120).allow(''),
     entity: Joi.string().max(120).allow(''),
     entityid: Joi.string().max(120).allow(''),
