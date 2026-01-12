@@ -311,9 +311,11 @@ describe('audit event schema', () => {
     expect(result.value.security.pmcode).toBe('1234')
   })
 
-  test('should not validate an event with undefined security.priority', () => {
+  test('should validate an event with undefined security.priority and default to 0', () => {
     event.security.priority = undefined
-    expect(schema.validate(event).error).toBeDefined()
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.security.priority).toBe(0)
   })
 
   test('should not validate an event with null security.priority', () => {
@@ -321,9 +323,11 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with missing security.priority', () => {
+  test('should validate an event with missing security.priority and default to 0', () => {
     delete event.security.priority
-    expect(schema.validate(event).error).toBeDefined()
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.security.priority).toBe(0)
   })
 
   test('should not validate an event with non-integer security.priority', () => {
