@@ -2,7 +2,7 @@ import Joi from 'joi'
 
 const schema = Joi.object({
   user: Joi.string().max(50).allow(''),
-  sessionid: Joi.string().max(50).required(),
+  sessionid: Joi.string().max(50).allow(''),
   correlationid: Joi.string().max(50).required(),
   datetime: Joi.date().iso().required(),
   environment: Joi.string().lowercase().max(20).required(),

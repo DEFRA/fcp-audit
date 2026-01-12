@@ -38,9 +38,9 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with undefined sessionid', () => {
+  test('should validate an event with undefined sessionid', () => {
     event.sessionid = undefined
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
   test('should not validate an event with null sessionid', () => {
@@ -48,14 +48,14 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with missing sessionid', () => {
+  test('should validate an event with missing sessionid', () => {
     delete event.sessionid
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should not validate an event with empty sessionid', () => {
+  test('should validate an event with empty sessionid', () => {
     event.sessionid = ''
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
   test('should not validate an event with sessionid exceeding 50 characters', () => {
