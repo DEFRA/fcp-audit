@@ -2,17 +2,17 @@ import Joi from 'joi'
 
 const schema = Joi.object({
   user: Joi.string().max(50).allow(''),
-  sessionid: Joi.string().max(50).required(),
+  sessionid: Joi.string().max(50).allow(''),
   correlationid: Joi.string().max(50).required(),
   datetime: Joi.date().iso().required(),
-  environment: Joi.string().max(20).required(),
+  environment: Joi.string().lowercase().max(20).required(),
   version: Joi.string().max(10).required(),
-  application: Joi.string().max(10).required(),
+  application: Joi.string().max(30).required(),
   component: Joi.string().max(30).required(),
   ip: Joi.string().max(20).required(),
   security: Joi.object({
-    pmcode: Joi.string().max(4).required(),
-    priority: Joi.number().integer().required(),
+    pmcode: Joi.string().replace(/-/g, '').max(4).required(),
+    priority: Joi.number().integer().default(0),
     details: Joi.object({
       transactioncode: Joi.string().max(4).allow(''),
       message: Joi.string().max(120).allow(''),
@@ -20,7 +20,7 @@ const schema = Joi.object({
     }).default({})
   }).allow(null),
   audit: Joi.object({
-    eventtype: Joi.string().max(120).allow(''),
+    eventtype: Joi.string().max(120).required(),
     action: Joi.string().max(120).allow(''),
     entity: Joi.string().max(120).allow(''),
     entityid: Joi.string().max(120).allow(''),

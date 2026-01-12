@@ -38,9 +38,9 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with undefined sessionid', () => {
+  test('should validate an event with undefined sessionid', () => {
     event.sessionid = undefined
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
   test('should not validate an event with null sessionid', () => {
@@ -48,14 +48,14 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with missing sessionid', () => {
+  test('should validate an event with missing sessionid', () => {
     delete event.sessionid
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should not validate an event with empty sessionid', () => {
+  test('should validate an event with empty sessionid', () => {
     event.sessionid = ''
-    expect(schema.validate(event).error).toBeDefined()
+    expect(schema.validate(event).error).toBeUndefined()
   })
 
   test('should not validate an event with sessionid exceeding 50 characters', () => {
@@ -143,6 +143,20 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
+  test('should convert environment to lowercase', () => {
+    event.environment = 'PRODUCTION'
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.environment).toBe('production')
+  })
+
+  test('should convert mixed case environment to lowercase', () => {
+    event.environment = 'DeVeLoPmEnT'
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.environment).toBe('development')
+  })
+
   test('should not validate an event with undefined version', () => {
     event.version = undefined
     expect(schema.validate(event).error).toBeDefined()
@@ -188,8 +202,8 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with application exceeding 10 characters', () => {
-    event.application = 'A'.repeat(11)
+  test('should not validate an event with application exceeding 30 characters', () => {
+    event.application = 'A'.repeat(31)
     expect(schema.validate(event).error).toBeDefined()
   })
 
@@ -283,9 +297,25 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with undefined security.priority', () => {
+  test('should strip dashes from security.pmcode', () => {
+    event.security.pmcode = '12-34'
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.security.pmcode).toBe('1234')
+  })
+
+  test('should strip multiple dashes from security.pmcode', () => {
+    event.security.pmcode = '1-2-3-4'
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.security.pmcode).toBe('1234')
+  })
+
+  test('should validate an event with undefined security.priority and default to 0', () => {
     event.security.priority = undefined
-    expect(schema.validate(event).error).toBeDefined()
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.security.priority).toBe(0)
   })
 
   test('should not validate an event with null security.priority', () => {
@@ -293,9 +323,11 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with missing security.priority', () => {
+  test('should validate an event with missing security.priority and default to 0', () => {
     delete event.security.priority
-    expect(schema.validate(event).error).toBeDefined()
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.security.priority).toBe(0)
   })
 
   test('should not validate an event with non-integer security.priority', () => {
@@ -408,14 +440,14 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should validate an event with undefined audit.eventtype', () => {
+  test('should not validate an event with undefined audit.eventtype', () => {
     event.audit.eventtype = undefined
-    expect(schema.validate(event).error).toBeUndefined()
+    expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should validate an event with empty audit.eventtype', () => {
+  test('should not validate an event with empty audit.eventtype', () => {
     event.audit.eventtype = ''
-    expect(schema.validate(event).error).toBeUndefined()
+    expect(schema.validate(event).error).toBeDefined()
   })
 
   test('should not validate an event with null audit.eventtype', () => {
