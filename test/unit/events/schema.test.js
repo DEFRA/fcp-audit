@@ -283,6 +283,20 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
+  test('should strip dashes from security.pmcode', () => {
+    event.security.pmcode = '12-34'
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.security.pmcode).toBe('1234')
+  })
+
+  test('should strip multiple dashes from security.pmcode', () => {
+    event.security.pmcode = '1-2-3-4'
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.security.pmcode).toBe('1234')
+  })
+
   test('should not validate an event with undefined security.priority', () => {
     event.security.priority = undefined
     expect(schema.validate(event).error).toBeDefined()

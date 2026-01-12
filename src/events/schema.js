@@ -11,7 +11,7 @@ const schema = Joi.object({
   component: Joi.string().max(30).required(),
   ip: Joi.string().max(20).required(),
   security: Joi.object({
-    pmcode: Joi.string().max(4).required(),
+    pmcode: Joi.string().replace(/-/g, '').max(4).required(),
     priority: Joi.number().integer().required(),
     details: Joi.object({
       transactioncode: Joi.string().max(4).allow(''),
