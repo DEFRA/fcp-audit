@@ -1,5 +1,11 @@
 import { vi, describe, beforeEach, test, expect } from 'vitest'
 
+const mockLoggerInfo = vi.fn()
+
+vi.mock('../../../src/common/helpers/logging/logger.js', () => ({
+  createLogger: () => ({ info: (...args) => mockLoggerInfo(...args) })
+}))
+
 const mockParseEvent = vi.fn()
 
 vi.mock('../../../src/events/parse.js', () => ({
@@ -87,6 +93,14 @@ describe('processEvent', () => {
     await processEvent(testRawEvent)
 
     expect(mockSentToSoc).toHaveBeenCalledWith(socEvent)
+  })
+
+  test('should log successful processing of the event', async () => {
+    await processEvent(testRawEvent)
+    expect(mockLoggerInfo).toHaveBeenCalledWith(
+      expect.any(string),
+      'Event processed successfully'
+    )
   })
 
   test('should abandon processing if parsing fails', async () => {
