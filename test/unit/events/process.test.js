@@ -95,10 +95,11 @@ describe('processEvent', () => {
     expect(mockSentToSoc).toHaveBeenCalledWith(socEvent)
   })
 
-  test('should log successful processing of the event', async () => {
+  test('should log successful processing of the event with base64 encoding', async () => {
     await processEvent(testRawEvent)
+    const expectedBase64 = Buffer.from(JSON.stringify(testEvent)).toString('base64')
     expect(mockLoggerInfo).toHaveBeenCalledWith(
-      expect.any(string),
+      expectedBase64,
       'Event processed successfully'
     )
   })
