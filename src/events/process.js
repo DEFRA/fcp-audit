@@ -20,5 +20,5 @@ export async function processEvent (rawEvent) {
     sentToSoc(socEvent)
   }
 
-  logger.info(Buffer.from(JSON.stringify(event)).toString('base64'), 'Event processed successfully')
+  logger.info('Event processed successfully')
 }
