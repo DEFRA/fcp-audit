@@ -25,12 +25,17 @@ LABEL uk.gov.defra.ffc.parent-image=defradigital/node:${PARENT_VERSION}
 # CDP PLATFORM HEALTHCHECK REQUIREMENT
 USER root
 RUN apk add --no-cache curl
-USER node
 
-COPY --from=development /home/node/package*.json .
-COPY --from=development /home/node/src ./src/
+# Copy application code as root
+COPY --from=development --chown=root:root /home/node/package*.json .
+COPY --from=development --chown=root:root /home/node/src ./src
 
 RUN npm ci --omit=dev
+
+# Remove write permissions
+RUN chmod -R a-w /home/node
+
+USER node
 
 ARG PORT
 ENV PORT=${PORT}
