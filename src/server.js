@@ -1,6 +1,7 @@
 import Hapi from '@hapi/hapi'
 import Joi from 'joi'
 import Jwt from '@hapi/jwt'
+import Apiv from 'apiv'
 
 import { config } from './config/config.js'
 import { router } from './plugins/router.js'
@@ -46,6 +47,10 @@ async function createServer () {
 
   server.validator(Joi)
 
+  await server.register(swagger)
+
+  await server.register(Apiv) // Register Apiv independent of router to ensure it captures all routes
+
   await server.register([
     Jwt,
     auth,
@@ -54,7 +59,6 @@ async function createServer () {
     secureContext,
     pulse,
     mongoDb,
-    ...swagger,
     router,
     mongoTimeout,
     polling
