@@ -4,7 +4,7 @@ import { getEvents } from '../events/get.js'
 
 const api = [{
   method: 'GET',
-  path: '/api/v1/audit',
+  path: '/audit',
   options: {
     description: 'Get all audit events',
     tags: ['api', 'audit'],
