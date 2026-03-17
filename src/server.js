@@ -49,7 +49,7 @@ async function createServer () {
 
   await server.register(swagger)
 
-  await server.register({ plugin: Apiv }) // Register Apiv independent of router to ensure it captures all routes
+  await server.register(Apiv) // Register Apiv independent of router to ensure it captures all routes
 
   await server.register([
     Jwt,
