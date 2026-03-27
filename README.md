@@ -116,15 +116,15 @@ The FDM service can be configured using the following environment variables:
 
 ## Using Audit in Your Docker Compose
 
-To integrate the fcp-audit service into your own project's Docker Compose setup, you need to include the service along with its required dependencies: MongoDB and LocalStack.
+To integrate the fcp-audit service into your own project's Docker Compose setup, you need to include the service along with its required dependencies: MongoDB and Floci.
 
 ### Dependencies
 
 The fcp-audit service requires:
 
 1. **MongoDB with replica set** - Required for MongoDB sessions to work properly
-2. **LocalStack** - Provides SQS and SNS services for local development
-3. **LocalStack initialization script** - Sets up the required SQS queues and SNS topics
+2. **Floci** - Provides SQS and SNS services for local development
+3. **Floci initialization sidecar** - Sets up the required SQS queues and SNS topics
 
 ### Minimum Setup
 
@@ -139,15 +139,15 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
-      localstack:
-        condition: service_healthy
+      floci-init:
+        condition: service_completed_successfully
     environment:
       MONGO_URI: mongodb://mongodb:27017
       AWS_REGION: eu-west-2
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
-      AWS_SQS_QUEUE_URL: http://localstack:4566/000000000000/fcp_audit
-      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_SQS_QUEUE_URL: http://floci:4566/000000000000/fcp_audit
+      AWS_ENDPOINT_URL: http://floci:4566
     ports:
       - '3004:3004'
     networks:
@@ -167,23 +167,35 @@ services:
     networks:
       - fcp-network
 
-  localstack:
-    image: localstack/localstack
+  floci:
+    image: hectorvent/floci:latest
     environment:
-      LS_LOG: warn
-      SERVICES: sqs,sns
+      FLOCI_HOSTNAME: floci
+      FLOCI_DEFAULT_REGION: eu-west-2
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
-    healthcheck:
-      test: ['CMD', 'curl', 'localhost:4566']
-      interval: 5s
-      start_period: 5s
-      retries: 3
     ports:
       - '4566:4566'
     volumes:
-      - ./path/to/fcp-audit/localstack/localstack.sh:/etc/localstack/init/ready.d/localstack.sh
-      - localstack-data:/var/lib/localstack
+      - floci-data:/app/data
+    networks:
+      - fcp-network
+
+  floci-init:
+    image: amazon/aws-cli
+    entrypoint: sh
+    command: /init/init.sh
+    restart: "no"
+    depends_on:
+      floci:
+        condition: service_started
+    environment:
+      AWS_ENDPOINT_URL: http://floci:4566
+      AWS_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    volumes:
+      - ./path/to/fcp-audit/floci/init.sh:/init/init.sh
     networks:
       - fcp-network
 
@@ -193,12 +205,12 @@ networks:
 
 volumes:
   mongodb-data:
-  localstack-data:
+  floci-data:
 ```
 
-### LocalStack Initialization Script
+### Floci Initialization Script
 
-Copy or reference the LocalStack setup script from the fcp-audit repository at [`localstack/localstack.sh`](localstack/localstack.sh). This script creates the required SQS queues, dead letter queues, SNS topics, and subscriptions needed for the service to function properly.
+Copy or reference the Floci setup script from the fcp-audit repository at [`floci/init.sh`](floci/init.sh). This script creates the required SQS queues, dead letter queues, SNS topics, and subscriptions needed for the service to function properly.
 
 ### Accessing the Service
 
