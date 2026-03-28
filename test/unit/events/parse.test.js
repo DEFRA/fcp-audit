@@ -210,6 +210,26 @@ describe('parseEvent - key normalisation', () => {
     })
   })
 
+  test('should recursively lowercase keys of objects inside arrays', () => {
+    const event = {
+      Body: JSON.stringify({
+        correlationid: 'abc',
+        Items: [
+          { EventType: 'typeA', Details: { CaseId: '123' } },
+          { EventType: 'typeB', Details: { CaseId: '456' } }
+        ]
+      })
+    }
+    const result = parseEvent(event)
+    expect(result).toEqual({
+      correlationid: 'abc',
+      items: [
+        { eventtype: 'typeA', details: { caseid: '123' } },
+        { eventtype: 'typeB', details: { caseid: '456' } }
+      ]
+    })
+  })
+
   test('should not modify non-object values', () => {
     const event = {
       Body: JSON.stringify({
