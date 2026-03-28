@@ -5,8 +5,22 @@ export function parseEvent (event) {
   // Although CDP by default specifies raw message delivery without the envelope
   // Handling in case we need to support events from SNS outside of CDP.
   if (parsedBody.Message) {
-    return JSON.parse(parsedBody.Message)
+    return convertKeysToLowercase(JSON.parse(parsedBody.Message))
   }
 
-  return parsedBody
+  return convertKeysToLowercase(parsedBody)
+}
+
+function convertKeysToLowercase (obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(convertKeysToLowercase)
+  }
+
+  if (obj !== null && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [k.toLowerCase(), convertKeysToLowercase(v)])
+    )
+  }
+
+  return obj
 }
