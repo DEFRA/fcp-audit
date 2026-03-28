@@ -7,6 +7,10 @@ info:
 
     Events are either forwarded to the Security Operations Centre (SOC) for security monitoring,
     stored in the audit database for future analysis or both.
+
+    All property names in the event payload should ideally be lowercase. The service will
+    automatically convert all property names to lowercase on receipt, so camelCase or mixed-case
+    keys will be accepted but lowercase is the preferred convention.
     
     For detailed documentation, see: https://eaflood.atlassian.net/wiki/spaces/FDM/pages/6241288852/Publishing+Audit+events
   license:
@@ -273,6 +277,9 @@ components:
         If only security is provided, the event is sent to SOC only.
         If only audit is provided, the event is saved to the audit database only.
         If both are provided, the event is sent to SOC and saved to the audit database.
+
+        All property names should ideally be lowercase. The service will automatically convert
+        all property names to lowercase on receipt, so camelCase or mixed-case keys are accepted.
 
     UserId:
       type: string

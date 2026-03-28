@@ -73,7 +73,15 @@ describe('parseEvent - Direct SQS format', () => {
       Body: JSON.stringify(complexEvent)
     }
     const result = parseEvent(directEvent)
-    expect(result).toEqual(complexEvent)
+    expect(result).toEqual({
+      id: 'test-id',
+      type: 'uk.gov.fcp.sfd.notification.received',
+      source: 'test-source',
+      data: {
+        correlationid: 'test-correlation',
+        recipient: 'test@example.com'
+      }
+    })
   })
 })
 
@@ -102,8 +110,8 @@ describe('parseEvent - Error handling', () => {
     }
     const result = parseEvent(nullMessageEvent)
     expect(result).toEqual({
-      Type: 'Notification',
-      Message: null
+      type: 'Notification',
+      message: null
     })
   })
 
@@ -115,6 +123,123 @@ describe('parseEvent - Error handling', () => {
       })
     }
     expect(() => parseEvent(invalidMessageEvent)).toThrow()
+  })
+})
+
+describe('parseEvent - key normalisation', () => {
+  test('should lowercase top-level camelCase keys', () => {
+    const event = {
+      Body: JSON.stringify({
+        correlationId: 'abc',
+        dateTime: '2025-01-01T00:00:00.000Z'
+      })
+    }
+    const result = parseEvent(event)
+    expect(result).toEqual({ correlationid: 'abc', datetime: '2025-01-01T00:00:00.000Z' })
+  })
+
+  test('should recursively lowercase nested object keys', () => {
+    const event = {
+      Body: JSON.stringify({
+        correlationid: 'abc',
+        audit: {
+          eventType: 'someEvent',
+          details: {
+            additionalInfo: 'some info'
+          }
+        }
+      })
+    }
+    const result = parseEvent(event)
+    expect(result).toEqual({
+      correlationid: 'abc',
+      audit: {
+        eventtype: 'someEvent',
+        details: {
+          additionalinfo: 'some info'
+        }
+      }
+    })
+  })
+
+  test('should lowercase top-level PascalCase keys', () => {
+    const event = {
+      Body: JSON.stringify({
+        CorrelationId: 'abc',
+        DateTime: '2025-01-01T00:00:00.000Z',
+        Application: 'MyApp'
+      })
+    }
+    const result = parseEvent(event)
+    expect(result).toEqual({ correlationid: 'abc', datetime: '2025-01-01T00:00:00.000Z', application: 'MyApp' })
+  })
+
+  test('should recursively lowercase nested PascalCase keys', () => {
+    const event = {
+      Body: JSON.stringify({
+        CorrelationId: 'abc',
+        Audit: {
+          EventType: 'someEvent',
+          Details: {
+            AdditionalInfo: 'some info'
+          }
+        },
+        Security: {
+          PmCode: '0201',
+          Details: {
+            TransactionCode: '2306'
+          }
+        }
+      })
+    }
+    const result = parseEvent(event)
+    expect(result).toEqual({
+      correlationid: 'abc',
+      audit: {
+        eventtype: 'someEvent',
+        details: {
+          additionalinfo: 'some info'
+        }
+      },
+      security: {
+        pmcode: '0201',
+        details: {
+          transactioncode: '2306'
+        }
+      }
+    })
+  })
+
+  test('should recursively lowercase keys of objects inside arrays', () => {
+    const event = {
+      Body: JSON.stringify({
+        correlationid: 'abc',
+        Items: [
+          { EventType: 'typeA', Details: { CaseId: '123' } },
+          { EventType: 'typeB', Details: { CaseId: '456' } }
+        ]
+      })
+    }
+    const result = parseEvent(event)
+    expect(result).toEqual({
+      correlationid: 'abc',
+      items: [
+        { eventtype: 'typeA', details: { caseid: '123' } },
+        { eventtype: 'typeB', details: { caseid: '456' } }
+      ]
+    })
+  })
+
+  test('should not modify non-object values', () => {
+    const event = {
+      Body: JSON.stringify({
+        user: 'MixedCaseValue',
+        count: 42,
+        active: true
+      })
+    }
+    const result = parseEvent(event)
+    expect(result).toEqual({ user: 'MixedCaseValue', count: 42, active: true })
   })
 })
 
