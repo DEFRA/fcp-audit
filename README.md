@@ -4,6 +4,7 @@
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_fcp-audit&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=DEFRA_fcp-audit)
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_fcp-audit&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=DEFRA_fcp-audit)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_fcp-audit&metric=coverage)](https://sonarcloud.io/summary/new_code?id=DEFRA_fcp-audit)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025E8C?logo=dependabot)](https://github.com/DEFRA/fcp-audit/blob/main/.github/dependabot.yml)
 
 # FCP Audit service
 
