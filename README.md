@@ -75,7 +75,7 @@ The FDM service can be configured using the following environment variables:
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `AWS_REGION` | AWS region for services | `eu-west-2` | No |
-| `AWS_ENDPOINT_URL` | AWS endpoint URL (for LocalStack) | `null` | No |
+| `AWS_ENDPOINT_URL` | AWS endpoint URL (for Floci) | `null` | No |
 | `AWS_ACCESS_KEY_ID` | AWS access key ID | `null` | No |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret access key | `null` | No |
 | `AWS_SQS_QUEUE_URL` | SQS queue URL for event consumption | `null` | Yes |

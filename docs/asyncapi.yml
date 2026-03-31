@@ -23,7 +23,7 @@ servers:
   local:
     host: localhost:4566
     protocol: sqs
-    description: LocalStack SQS for local development
+    description: Floci SQS for local development
     bindings:
       sqs:
         region: eu-west-2
