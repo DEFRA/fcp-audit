@@ -42,3 +42,5 @@ jobs:
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: moderate
+          retry-on-snapshot-warnings: true
+          retry-on-snapshot-warnings-timeout: 180
