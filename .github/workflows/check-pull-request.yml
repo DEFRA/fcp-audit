@@ -15,9 +15,11 @@ jobs:
   pr-validator:
     name: Run Pull Request Checks
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Create Coverage Directory
         run: mkdir -p -m 777 coverage
@@ -28,7 +30,7 @@ jobs:
       - name: Test Docker Image Build
         run: |
           set +e
-          docker build --no-cache --tag cdp-node-backend-template .
+          docker build --no-cache --tag fcp-audit .
           exit $?
 
       - name: SonarQube Cloud Scan
@@ -42,3 +44,4 @@ jobs:
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: moderate
+          comment-summary-in-pr: always
