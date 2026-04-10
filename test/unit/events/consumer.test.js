@@ -7,9 +7,9 @@ const mockSqsClient = {
 const mockProcessEvent = vi.fn()
 
 vi.mock('@aws-sdk/client-sqs', () => ({
-  SQSClient: vi.fn(() => mockSqsClient),
-  ReceiveMessageCommand: vi.fn((params) => ({ params })),
-  DeleteMessageBatchCommand: vi.fn((params) => ({ params }))
+  SQSClient: vi.fn(function () { return mockSqsClient }),
+  ReceiveMessageCommand: vi.fn(function (params) { return { params } }),
+  DeleteMessageBatchCommand: vi.fn(function (params) { return { params } })
 }))
 
 vi.mock('../../../src/events/process.js', () => ({

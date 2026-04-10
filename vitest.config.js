@@ -13,10 +13,6 @@ export default defineConfig({
       exclude: [...configDefaults.exclude, 'coverage', '**/test/**'],
       clean: false
     },
-    poolOptions: {
-      forks: {
-        singleFork: true
-      }
-    }
+    maxWorkers: 1
   }
 })
