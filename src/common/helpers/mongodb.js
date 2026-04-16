@@ -59,14 +59,28 @@ async function createIndexes (db) {
   await db.collection(AUDIT_COLLECTION_NAME).createIndex({ type: 1, time: -1 }, { name: 'events_type_by_time' })
 }
 
-async function configureGlobalTtlIndexes (db) {
+export async function configureGlobalTtlIndexes (db) {
   const globalTtl = config.get('data.globalTtl')
 
   if (globalTtl) {
-    await db.collection(AUDIT_COLLECTION_NAME).createIndex({ received: 1 }, { name: 'events_ttl', expireAfterSeconds: globalTtl })
+    await upsertTtlIndex(db.collection(AUDIT_COLLECTION_NAME), { received: 1 }, 'events_ttl', globalTtl)
   } else {
     await removeTtlIndexes(db)
   }
+}
+
+async function upsertTtlIndex (collection, indexSpec, indexName, expireAfterSeconds) {
+  const indexes = await collection.indexes()
+  const existing = indexes.find(index => index.name === indexName)
+
+  if (existing) {
+    if (existing.expireAfterSeconds === expireAfterSeconds) {
+      return
+    }
+    await collection.dropIndex(indexName)
+  }
+
+  await collection.createIndex(indexSpec, { name: indexName, expireAfterSeconds })
 }
 
 async function removeTtlIndexes (db) {
