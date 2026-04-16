@@ -9,7 +9,7 @@ services:
 
   mongodb:
     ports:
-      - '27017:27017'
+      - '27018:27017'
     networks:
       - fcp-audit
     volumes:
@@ -17,8 +17,7 @@ services:
 
   floci:
     ports:
-      - '4566:4566'
-      - '4510-4559:4510-4559'
+      - '4567:4566'
     volumes:
       - floci-data:/app/data
     networks:

@@ -1,9 +1,9 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 
 const options = {
-  queueUrl: 'http://localhost:4566/000000000000/fcp_audit',
+  queueUrl: 'http://localhost:4567/000000000000/fcp_audit',
   region: 'eu-west-2',
-  endpoint: 'http://localhost:4566',
+  endpoint: 'http://localhost:4567',
   credentials: {
     accessKeyId: 'test',
     secretAccessKey: 'test'
