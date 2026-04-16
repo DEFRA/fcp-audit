@@ -21,7 +21,7 @@ defaultContentType: application/json
 
 servers:
   local:
-    host: localhost:4566
+    host: localhost:4567
     protocol: sqs
     description: Floci SQS for local development
     bindings:
