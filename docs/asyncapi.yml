@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: FCP Audit service
-  version: 0.1.0
+  version: 0.2.0
   description: |
     The FCP Audit service consumes audit events from FCP services via AWS SQS.
 
