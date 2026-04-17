@@ -440,83 +440,84 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should not validate an event with undefined audit.eventtype', () => {
-    event.audit.eventtype = undefined
+  test('should not validate an event with undefined audit.entities', () => {
+    event.audit.entities = undefined
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with empty audit.eventtype', () => {
-    event.audit.eventtype = ''
+  test('should not validate an event with null audit.entities', () => {
+    event.audit.entities = null
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with null audit.eventtype', () => {
-    event.audit.eventtype = null
+  test('should not validate an event with missing audit.entities', () => {
+    delete event.audit.entities
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with audit.eventtype exceeding 120 characters', () => {
-    event.audit.eventtype = 'A'.repeat(121)
+  test('should not validate an event with empty audit.entities array', () => {
+    event.audit.entities = []
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should validate an event with undefined audit.action', () => {
-    event.audit.action = undefined
+  test('should validate an event with a valid audit.entities array', () => {
     expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should validate an event with empty audit.action', () => {
-    event.audit.action = ''
+  test('should validate an event with multiple entities in audit.entities', () => {
+    event.audit.entities = [
+      { entity: 'application', action: 'created', entityid: 'APP-001' },
+      { entity: 'payment', action: 'processed', entityid: 'PAY-002' }
+    ]
     expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should not validate an event with null audit.action', () => {
-    event.audit.action = null
+  test('should not validate an audit entity item with missing entity', () => {
+    event.audit.entities = [{ action: 'created', entityid: 'APP-001' }]
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with audit.action exceeding 120 characters', () => {
-    event.audit.action = 'A'.repeat(121)
+  test('should not validate an audit entity item with missing action', () => {
+    event.audit.entities = [{ entity: 'application', entityid: 'APP-001' }]
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should validate an event with undefined audit.entity', () => {
-    event.audit.entity = undefined
+  test('should validate an audit entity item with missing entityid', () => {
+    event.audit.entities = [{ entity: 'application', action: 'created' }]
     expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should validate an event with empty audit.entity', () => {
-    event.audit.entity = ''
+  test('should validate an audit entity item with empty entityid', () => {
+    event.audit.entities = [{ entity: 'application', action: 'created', entityid: '' }]
     expect(schema.validate(event).error).toBeUndefined()
   })
 
-  test('should not validate an event with null audit.entity', () => {
-    event.audit.entity = null
+  test('should not validate an audit entity item with entityid exceeding 120 characters', () => {
+    event.audit.entities = [{ entity: 'application', action: 'created', entityid: 'A'.repeat(121) }]
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with audit.entity exceeding 120 characters', () => {
-    event.audit.entity = 'A'.repeat(121)
+  test('should convert audit.entities entity to lowercase', () => {
+    event.audit.entities = [{ entity: 'Application', action: 'created', entityid: 'APP-001' }]
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.audit.entities[0].entity).toBe('application')
+  })
+
+  test('should convert audit.entities action to lowercase', () => {
+    event.audit.entities = [{ entity: 'application', action: 'CREATED', entityid: 'APP-001' }]
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.audit.entities[0].action).toBe('created')
+  })
+
+  test('should not validate an audit entity item with entity exceeding 120 characters', () => {
+    event.audit.entities = [{ entity: 'A'.repeat(121), action: 'created' }]
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should validate an event with undefined audit.entityid', () => {
-    event.audit.entityid = undefined
-    expect(schema.validate(event).error).toBeUndefined()
-  })
-
-  test('should validate an event with empty audit.entityid', () => {
-    event.audit.entityid = ''
-    expect(schema.validate(event).error).toBeUndefined()
-  })
-
-  test('should not validate an event with null audit.entityid', () => {
-    event.audit.entityid = null
-    expect(schema.validate(event).error).toBeDefined()
-  })
-
-  test('should not validate an event with audit.entityid exceeding 120 characters', () => {
-    event.audit.entityid = 'A'.repeat(121)
+  test('should not validate an audit entity item with action exceeding 120 characters', () => {
+    event.audit.entities = [{ entity: 'application', action: 'A'.repeat(121) }]
     expect(schema.validate(event).error).toBeDefined()
   })
 
@@ -557,6 +558,41 @@ describe('audit event schema', () => {
 
   test('should not validate an event with null audit.details', () => {
     event.audit.details = null
+    expect(schema.validate(event).error).toBeDefined()
+  })
+
+  test('should validate an event with undefined audit.accounts', () => {
+    event.audit.accounts = undefined
+    expect(schema.validate(event).error).toBeUndefined()
+  })
+
+  test('should validate an event with missing audit.accounts', () => {
+    delete event.audit.accounts
+    expect(schema.validate(event).error).toBeUndefined()
+  })
+
+  test('should validate an event with all audit.accounts fields', () => {
+    event.audit.accounts = {
+      sbi: '123456789',
+      frn: '1234567890',
+      vendor: 'V001',
+      trader: 'T001',
+      organisationId: 'ORG-001',
+      crn: 'CRN-001',
+      personId: 'PER-001'
+    }
+    expect(schema.validate(event).error).toBeUndefined()
+  })
+
+  test('should coerce numeric audit.accounts.sbi to string', () => {
+    event.audit.accounts = { sbi: 123456789 }
+    const result = schema.validate(event)
+    expect(result.error).toBeUndefined()
+    expect(result.value.audit.accounts.sbi).toBe('123456789')
+  })
+
+  test('should not validate an audit.accounts.sbi exceeding 50 characters', () => {
+    event.audit.accounts = { sbi: 'A'.repeat(51) }
     expect(schema.validate(event).error).toBeDefined()
   })
 

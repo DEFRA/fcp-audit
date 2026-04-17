@@ -1,5 +1,7 @@
 import Joi from 'joi'
 
+const accountId = Joi.alternatives().try(Joi.string().max(50), Joi.number()).custom(String)
+
 const schema = Joi.object({
   user: Joi.string().max(50).allow(''),
   sessionid: Joi.string().max(50).allow(''),
@@ -20,10 +22,20 @@ const schema = Joi.object({
     }).default({})
   }).allow(null),
   audit: Joi.object({
-    eventtype: Joi.string().max(120).required(),
-    action: Joi.string().max(120).allow(''),
-    entity: Joi.string().max(120).allow(''),
-    entityid: Joi.string().max(120).allow(''),
+    entities: Joi.array().items(Joi.object({
+      entity: Joi.string().lowercase().max(120).required(),
+      action: Joi.string().lowercase().max(120).required(),
+      entityid: Joi.string().max(120).allow('')
+    })).min(1).required(),
+    accounts: Joi.object({
+      sbi: accountId,
+      frn: accountId,
+      vendor: accountId,
+      trader: accountId,
+      organisationId: accountId,
+      crn: accountId,
+      personId: accountId
+    }).default({}),
     status: Joi.string().max(120).allow(''),
     details: Joi.object().default({})
   }).allow(null)

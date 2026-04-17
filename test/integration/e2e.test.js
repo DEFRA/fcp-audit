@@ -46,7 +46,7 @@ describe('audit event scenarios', () => {
 
     const savedMessages = await collections.audit.find({}).toArray()
     expect(savedMessages).toHaveLength(1)
-    expect(savedMessages[0].audit.eventtype).toBe(event.audit.eventtype)
+    expect(savedMessages[0].audit.entities).toEqual(event.audit.entities)
   })
 
   test('should process an audit event with SOC data only not saving to database', async () => {

@@ -88,10 +88,8 @@ describe('transform event', () => {
 
     test('should spread all audit properties correctly', () => {
       const result = transformEvent(event)
-      expect(result.auditEvent.audit.eventtype).toBe(event.audit.eventtype)
-      expect(result.auditEvent.audit.action).toBe(event.audit.action)
-      expect(result.auditEvent.audit.entity).toBe(event.audit.entity)
-      expect(result.auditEvent.audit.entityid).toBe(event.audit.entityid)
+      expect(result.auditEvent.audit.entities).toEqual(event.audit.entities)
+      expect(result.auditEvent.audit.accounts).toEqual(event.audit.accounts)
       expect(result.auditEvent.audit.status).toBe(event.audit.status)
       expect(result.auditEvent.audit.details).toEqual(event.audit.details)
     })

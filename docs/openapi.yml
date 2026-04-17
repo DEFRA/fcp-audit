@@ -137,13 +137,15 @@ paths:
                           component: "fcp-audit"
                           ip: "192.168.1.100"
                           audit:
-                            eventtype: "AuditRecordAccess"
-                            action: "VIEW_AUDIT_RECORD"
-                            entity: "AuditRecord"
-                            entityid: "AUD-79389915"
-                            status: "SUCCESS"
+                            entities:
+                              - entity: application
+                                action: created
+                                entityid: APP-79389915
+                            accounts:
+                              sbi: '123456789'
+                            status: success
                             details:
-                              caseid: "CRM-09384721"
+                              caseid: CRM-09384721
                           received: "2025-12-01T12:51:42.000Z"
                     links:
                       self: "/api/v1/audit?page=1&pageSize=20"
@@ -261,38 +263,84 @@ components:
         audit:
           type: object
           description: Audit extension fields for local retention
+          required:
+            - entities
           properties:
-            eventtype:
-              type: string
-              maxLength: 120
-              description: Type of audit event
-              example: "AuditRecordAccess"
-            action:
-              type: string
-              maxLength: 120
-              description: Action performed
-              example: "VIEW_AUDIT_RECORD"
-            entity:
-              type: string
-              maxLength: 120
-              description: Entity being audited
-              example: "AuditRecord"
-            entityid:
-              type: string
-              maxLength: 120
-              description: Unique identifier for the entity
-              example: "AUD-79389915"
+            entities:
+              type: array
+              minItems: 1
+              description: Array of entities involved in the audited event
+              items:
+                type: object
+                required:
+                  - entity
+                  - action
+                properties:
+                  entity:
+                    type: string
+                    maxLength: 120
+                    description: Entity type in lower case
+                    example: application
+                  action:
+                    type: string
+                    maxLength: 120
+                    description: Action performed in past tense
+                    example: created
+                  entityid:
+                    type: string
+                    maxLength: 120
+                    description: Identifier of the entity
+                    example: APP-79389915
+            accounts:
+              type: object
+              description: Business and personal identifiers related to the event
+              properties:
+                sbi:
+                  type: string
+                  maxLength: 50
+                  description: Single Business Identifier
+                  example: '123456789'
+                frn:
+                  type: string
+                  maxLength: 50
+                  description: Firm Reference Number
+                  example: '1234567890'
+                vendor:
+                  type: string
+                  maxLength: 50
+                  description: Vendor number
+                  example: 'V001'
+                trader:
+                  type: string
+                  maxLength: 50
+                  description: Trader number
+                  example: 'T001'
+                organisationId:
+                  type: string
+                  maxLength: 50
+                  description: Primary key from customer database
+                  example: 'ORG-001'
+                crn:
+                  type: string
+                  maxLength: 50
+                  description: Customer Reference Number
+                  example: 'CRN-001'
+                personId:
+                  type: string
+                  maxLength: 50
+                  description: Primary key from customer database
+                  example: 'PER-001'
             status:
               type: string
               maxLength: 120
-              description: Status of the action
-              example: "SUCCESS"
+              description: Status of the event
+              example: success
             details:
               type: object
               additionalProperties: true
               description: Additional audit details
               example:
-                caseid: "CRM-09384721"
+                caseid: CRM-09384721
         received:
           type: string
           format: date-time

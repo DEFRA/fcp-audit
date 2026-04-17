@@ -136,10 +136,12 @@ components:
                 message: User successfully accessed audit record
                 additionalinfo: Audit event successfully processed
             audit:
-              eventtype: BankDetailsUpdate
-              action: update
-              entity: Bank Details
-              entityid: ID-79389915
+              entities:
+                - entity: bank
+                  action: updated
+                  entityid: BANK-79389915
+              accounts:
+                sbi: '123456789'
               status: success
               details:
                 caseid: CRM-09384721
@@ -154,10 +156,12 @@ components:
             component: fcp-backend-api
             ip: 10.0.1.50
             audit:
-              eventtype: DataExport
-              action: read
-              entity: Application Data
-              entityid: APP-12345
+              entities:
+                - entity: payment
+                  action: processed
+                  entityid: PAY-12345
+              accounts:
+                frn: '1234567890'
               status: success
         - name: SecurityOnlyEvent
           summary: Security event sent to SOC only (not stored in audit DB)
@@ -248,26 +252,16 @@ components:
             
             At least one of security or audit must be provided.
           required:
-            - eventtype
+            - entities
           properties:
-            eventtype:
-              type: string
-              maxLength: 120
-              description: |
-                Context specific event type. This is the minimum data to be persisted for future analysis.
-              example: BankDetailsUpdate
-            action:
-              $ref: '#/components/schemas/AuditAction'
-            entity:
-              type: string
-              maxLength: 120
-              description: Description of the entity being audited (e.g., Bank Details)
-              example: Bank Details
-            entityid:
-              type: string
-              maxLength: 120
-              description: Identifier of entity being updated. This could be a primary key, unique reference, etc.
-              example: ID-79389915
+            entities:
+              type: array
+              minItems: 1
+              description: Array of entities involved in the audited event.
+              items:
+                $ref: '#/components/schemas/AuditEntity'
+            accounts:
+              $ref: '#/components/schemas/AuditAccounts'
             status:
               $ref: '#/components/schemas/AuditStatus'
             details:
@@ -418,14 +412,81 @@ components:
       type: string
       maxLength: 120
       description: |
-        Specific action performed. Typically one of:
-        - create
+        Specific action performed in past tense. Typically one of:
+        - created
         - read
-        - update
-        - delete
-        
-        However, any string value up to 120 characters is accepted.
-      example: update
+        - updated
+        - deleted
+
+        However, context specific values may also exist (e.g., accepted, approved).
+        The value is automatically converted to lowercase by the service.
+      example: created
+
+    AuditEntity:
+      type: object
+      required:
+        - entity
+        - action
+      properties:
+        entity:
+          type: string
+          maxLength: 120
+          description: |
+            Description of the entity being audited in lower case.
+            The value is automatically converted to lowercase by the service.
+          example: application
+        action:
+          $ref: '#/components/schemas/AuditAction'
+        entityid:
+          type: string
+          maxLength: 120
+          description: |
+            Identifier of the entity. This could be a primary key, unique reference, etc.
+            Not required if the entity id is not known.
+          example: APP-12345
+
+    AuditAccounts:
+      type: object
+      description: |
+        Object containing business and personal identifiers related to the event.
+        All values are automatically coerced to strings on receipt.
+        Populate all known fields.
+      properties:
+        sbi:
+          type: string
+          maxLength: 50
+          description: Single Business Identifier
+          example: '123456789'
+        frn:
+          type: string
+          maxLength: 50
+          description: Firm Reference Number
+          example: '1234567890'
+        vendor:
+          type: string
+          maxLength: 50
+          description: Vendor number
+          example: 'V001'
+        trader:
+          type: string
+          maxLength: 50
+          description: Trader number
+          example: 'T001'
+        organisationId:
+          type: string
+          maxLength: 50
+          description: Primary key from customer database
+          example: 'ORG-001'
+        crn:
+          type: string
+          maxLength: 50
+          description: Customer Reference Number
+          example: 'CRN-001'
+        personId:
+          type: string
+          maxLength: 50
+          description: Primary key from customer database
+          example: 'PER-001'
 
     AuditStatus:
       type: string
