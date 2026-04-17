@@ -9,6 +9,7 @@ function createAuditEvent (event) {
   return {
     user: event.user,
     sessionid: event.sessionid,
+    correlationid: event.correlationid,
     datetime: event.datetime,
     environment: event.environment,
     version: event.version,
@@ -23,6 +24,7 @@ function createSocEvent (event) {
   return {
     user: event.user,
     sessionid: event.sessionid,
+    correlationid: event.correlationid,
     datetime: event.datetime,
     environment: event.environment,
     version: event.version,
@@ -31,6 +33,6 @@ function createSocEvent (event) {
     ip: event.ip,
     pmcode: event.security.pmcode,
     priority: event.security.priority,
-    details: { ...event.security.details },
+    details: { ...event.security.details }
   }
 }
