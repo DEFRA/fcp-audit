@@ -94,9 +94,9 @@ describe('transform event', () => {
       expect(result.auditEvent.audit.details).toEqual(event.audit.details)
     })
 
-    test('should not contain correlationid property', () => {
+    test('should contain correlationid property', () => {
       const result = transformEvent(event)
-      expect(result.auditEvent.correlationid).toBeUndefined()
+      expect(result.auditEvent.correlationid).toBe(event.correlationid)
     })
 
     test('should not contain security properties', () => {
@@ -108,7 +108,7 @@ describe('transform event', () => {
 
     test('should only contain expected properties', () => {
       const result = transformEvent(event)
-      const expectedKeys = ['user', 'sessionid', 'datetime', 'environment', 'version', 'application', 'component', 'ip', 'audit']
+      const expectedKeys = ['user', 'sessionid', 'correlationid', 'datetime', 'environment', 'version', 'application', 'component', 'ip', 'audit']
       expect(Object.keys(result.auditEvent)).toEqual(expectedKeys)
     })
   })
@@ -177,9 +177,9 @@ describe('transform event', () => {
       expect(result.socEvent.details.additionalinfo).toBe(event.security.details.additionalinfo)
     })
 
-    test('should not contain correlationid property', () => {
+    test('should contain correlationid property', () => {
       const result = transformEvent(event)
-      expect(result.socEvent.correlationid).toBeUndefined()
+      expect(result.socEvent.correlationid).toBe(event.correlationid)
     })
 
     test('should not contain audit property', () => {
@@ -189,7 +189,7 @@ describe('transform event', () => {
 
     test('should only contain expected properties', () => {
       const result = transformEvent(event)
-      const expectedKeys = ['user', 'sessionid', 'datetime', 'environment', 'version', 'application', 'component', 'ip', 'pmcode', 'priority', 'details']
+      const expectedKeys = ['user', 'sessionid', 'correlationid', 'datetime', 'environment', 'version', 'application', 'component', 'ip', 'pmcode', 'priority', 'details']
       expect(Object.keys(result.socEvent)).toEqual(expectedKeys)
     })
   })
