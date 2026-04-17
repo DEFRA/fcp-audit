@@ -7,6 +7,8 @@ export async function validateEvent (event) {
     throw new Error(`Event is invalid, ${validationResult.error.message}`)
   }
 
+  Object.assign(event, validationResult.value)
+
   if (event.security === null) {
     delete event.security
   }

@@ -22,6 +22,7 @@ describe('validateEvent', () => {
   })
 
   test('should validate all event payload properties against schema allowing unknown properties', async () => {
+    mockSchemaValidate.mockReturnValue({ error: null, value: testEvent })
     await validateEvent(testEvent)
     expect(mockSchemaValidate).toHaveBeenCalledWith(testEvent, { abortEarly: false, allowUnknown: true })
   })
@@ -39,6 +40,7 @@ describe('validateEvent', () => {
       security: null,
       audit: { eventtype: 'test' }
     }
+    mockSchemaValidate.mockReturnValue({ error: null, value: { ...event } })
 
     await validateEvent(event)
 
@@ -52,6 +54,7 @@ describe('validateEvent', () => {
       audit: null,
       security: { pmcode: '1234' }
     }
+    mockSchemaValidate.mockReturnValue({ error: null, value: { ...event } })
 
     await validateEvent(event)
 
@@ -65,6 +68,7 @@ describe('validateEvent', () => {
       security: { pmcode: '1234', priority: 1 },
       audit: { eventtype: 'test' }
     }
+    mockSchemaValidate.mockReturnValue({ error: null, value: { ...event } })
 
     await validateEvent(event)
 
@@ -78,6 +82,7 @@ describe('validateEvent', () => {
       audit: { eventtype: 'test' },
       security: { pmcode: '1234' }
     }
+    mockSchemaValidate.mockReturnValue({ error: null, value: { ...event } })
 
     await validateEvent(event)
 
@@ -91,6 +96,7 @@ describe('validateEvent', () => {
       security: { pmcode: '1234', priority: 1 },
       audit: { eventtype: 'test' }
     }
+    mockSchemaValidate.mockReturnValue({ error: null, value: { ...event } })
 
     await validateEvent(event)
 

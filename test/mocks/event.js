@@ -18,11 +18,13 @@ export const event = {
     }
   },
   audit: {
-    eventtype: 'AuditRecordAccess',
-    action: 'VIEW_AUDIT_RECORD',
-    entity: 'AuditRecord',
-    entityid: 'AUD-79389915',
-    status: 'SUCCESS',
+    entities: [
+      { entity: 'application', action: 'created', entityid: 'APP-79389915' }
+    ],
+    accounts: {
+      sbi: '123456789'
+    },
+    status: 'success',
     details: {
       caseid: 'CRM-09384721'
     }
@@ -39,11 +41,13 @@ export const auditEvent = {
   component: 'fcp-audit',
   ip: '192.168.1.100',
   audit: {
-    eventtype: 'AuditRecordAccess',
-    action: 'VIEW_AUDIT_RECORD',
-    entity: 'AuditRecord',
-    entityid: 'AUD-79389915',
-    status: 'SUCCESS',
+    entities: [
+      { entity: 'application', action: 'created', entityid: 'APP-79389915' }
+    ],
+    accounts: {
+      sbi: '123456789'
+    },
+    status: 'success',
     details: {
       caseid: 'CRM-09384721'
     }

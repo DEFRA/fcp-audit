@@ -15,10 +15,12 @@ const auditEvent2 = structuredClone({
   ip: '192.168.1.101',
   audit: {
     ...auditEventPayload.audit,
-    eventtype: 'UserLogout',
-    action: 'LOGOUT',
-    entity: 'UserSession',
-    entityid: 'SES-89389915',
+    entities: [
+      { entity: 'person', action: 'updated', entityid: '1234567890' }
+    ],
+    accounts: {
+      crn: '1234567890'
+    },
     details: {
       caseid: 'CRM-09384722'
     }
