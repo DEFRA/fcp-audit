@@ -574,12 +574,12 @@ describe('audit event schema', () => {
   test('should validate an event with all audit.accounts fields', () => {
     event.audit.accounts = {
       sbi: '123456789',
-      frn: '1234567890',
-      vendor: 'V001',
-      trader: 'T001',
-      organisationId: 'ORG-001',
-      crn: 'CRN-001',
-      personId: 'PER-001'
+      frn: '2123456789',
+      vendor: '12345G',
+      trader: '12345T',
+      organisationId: '1234567',
+      crn: '1234567890',
+      personId: '2123456'
     }
     expect(schema.validate(event).error).toBeUndefined()
   })

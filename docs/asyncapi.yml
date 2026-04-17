@@ -161,7 +161,7 @@ components:
                   action: processed
                   entityid: PAY-12345
               accounts:
-                frn: '1234567890'
+                frn: '2123456789'
               status: success
         - name: SecurityOnlyEvent
           summary: Security event sent to SOC only (not stored in audit DB)
@@ -461,32 +461,32 @@ components:
           type: string
           maxLength: 50
           description: Firm Reference Number
-          example: '1234567890'
+          example: '2123456789'
         vendor:
           type: string
           maxLength: 50
           description: Vendor number
-          example: 'V001'
+          example: '12345G'
         trader:
           type: string
           maxLength: 50
           description: Trader number
-          example: 'T001'
+          example: '12345T'
         organisationId:
           type: string
           maxLength: 50
           description: Primary key from customer database
-          example: 'ORG-001'
+          example: '1234567'
         crn:
           type: string
           maxLength: 50
           description: Customer Reference Number
-          example: 'CRN-001'
+          example: '1234567890'
         personId:
           type: string
           maxLength: 50
           description: Primary key from customer database
-          example: 'PER-001'
+          example: '2123456'
 
     AuditStatus:
       type: string

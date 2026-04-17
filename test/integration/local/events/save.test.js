@@ -16,10 +16,10 @@ const auditEvent2 = structuredClone({
   audit: {
     ...auditEventPayload.audit,
     entities: [
-      { entity: 'person', action: 'updated', entityid: 'CRN-89389915' }
+      { entity: 'person', action: 'updated', entityid: '1234567890' }
     ],
     accounts: {
-      crn: 'CRN-89389915'
+      crn: '1234567890'
     },
     details: {
       caseid: 'CRM-09384722'
