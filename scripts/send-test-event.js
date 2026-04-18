@@ -216,7 +216,7 @@ const mode = isAuditOnly ? 'audit' : isSecurityOnly ? 'security' : 'both'
 
 const eventsIdx = args.indexOf('--events')
 const eventCount = eventsIdx !== -1 && args[eventsIdx + 1]
-  ? parseInt(args[eventsIdx + 1], 10)
+  ? Number.parseInt(args[eventsIdx + 1], 10)
   : 1
 
 if (isNaN(eventCount) || eventCount < 1) {
