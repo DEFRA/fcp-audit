@@ -57,6 +57,8 @@ export function getMongoDb () {
 async function createIndexes (db) {
   await db.collection(AUDIT_COLLECTION_NAME).createIndex({ type: 1, received: -1 }, { name: 'events_type_by_received' })
   await db.collection(AUDIT_COLLECTION_NAME).createIndex({ type: 1, time: -1 }, { name: 'events_type_by_time' })
+  await db.collection(AUDIT_COLLECTION_NAME).createIndex({ received: -1 }, { name: 'events_by_received' })
+  await db.collection(AUDIT_COLLECTION_NAME).createIndex({ application: 1, component: 1 }, { name: 'events_by_app_component' })
 }
 
 export async function configureGlobalTtlIndexes (db) {

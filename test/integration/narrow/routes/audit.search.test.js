@@ -113,4 +113,18 @@ describe('GET /api/v1/audit/search', () => {
 
     expect(response.statusCode).toBe(HTTP_STATUS_OK)
   })
+
+  test('with empty condition value returns 400', async () => {
+    const url = '/api/v1/audit/search?conditions[0][field]=application&conditions[0][operator]=eq&conditions[0][value]='
+    const response = await server.inject({ method: 'GET', url })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  test('with duplicate entity sub-field returns 400', async () => {
+    const url = '/api/v1/audit/search?conditions[0][field]=audit.entities.entity&conditions[0][operator]=eq&conditions[0][value]=application&conditions[1][field]=audit.entities.entity&conditions[1][operator]=eq&conditions[1][value]=payment'
+    const response = await server.inject({ method: 'GET', url })
+
+    expect(response.statusCode).toBe(400)
+  })
 })

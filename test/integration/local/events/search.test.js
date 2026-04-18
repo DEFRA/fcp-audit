@@ -230,18 +230,6 @@ describe('searchEvents', () => {
     expect(result.events).toHaveLength(2)
   })
 
-  test('condition with empty value is skipped', async () => {
-    const result = await searchEvents({ conditions: [{ field: 'application', operator: 'eq', value: '' }], page: 1, pageSize: 20 })
-
-    expect(result.total).toBe(5)
-  })
-
-  test('condition with disallowed field is skipped', async () => {
-    const result = await searchEvents({ conditions: [{ field: '_id', operator: 'eq', value: 'anything' }], page: 1, pageSize: 20 })
-
-    expect(result.total).toBe(5)
-  })
-
   test('condition with invalid date value is skipped', async () => {
     const result = await searchEvents({ conditions: [{ field: 'datetime', operator: 'gt', value: 'not-a-date' }], page: 1, pageSize: 20 })
 

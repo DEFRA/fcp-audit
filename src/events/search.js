@@ -26,7 +26,7 @@ export const ALLOWED_FIELDS = new Set([
   'audit.accounts.personId'
 ])
 
-const CUSTOM_FIELD_PATTERN = /^details\.[a-zA-Z_][a-zA-Z0-9_-]*$/
+export const CUSTOM_FIELD_PATTERN = /^details\.[a-zA-Z_][a-zA-Z0-9_-]*$/
 
 const entitySubFields = new Set(['audit.entities.entity', 'audit.entities.action', 'audit.entities.entityid'])
 const dateCoercibleOperators = new Set(['eq', 'ne', 'lt', 'gt'])
@@ -83,15 +83,6 @@ function applyRegularCondition (query, field, operator, value) {
 }
 
 function isValidCondition ({ field, operator, value }) {
-  if (typeof field !== 'string' || field === '') {
-    return false
-  }
-  if (typeof value !== 'string' || value === '') {
-    return false
-  }
-  if (!ALLOWED_FIELDS.has(field) && !CUSTOM_FIELD_PATTERN.test(field)) {
-    return false
-  }
   if (field === 'datetime' && dateCoercibleOperators.has(operator)) {
     const d = new Date(value)
     if (Number.isNaN(d.getTime())) {
@@ -129,11 +120,11 @@ export async function searchEvents ({ conditions = [], page, pageSize }) {
 
   const [result] = await auditCollection.aggregate([
     { $match: query },
+    { $sort: { received: -1 } },
     {
       $facet: {
         total: [{ $count: 'count' }],
         events: [
-          { $sort: { received: -1 } },
           { $skip: skip },
           { $limit: pageSize },
           { $project: { _id: 0, received: 0 } }

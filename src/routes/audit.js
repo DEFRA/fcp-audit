@@ -2,9 +2,7 @@ import Joi from 'joi'
 import { getPageLinks } from '../common/helpers/pagination.js'
 import { getEvents } from '../events/get.js'
 import { getSummary } from '../events/summary.js'
-import { searchEvents, ALLOWED_FIELDS } from '../events/search.js'
-
-const CUSTOM_FIELD_PATTERN = /^details\.[a-zA-Z_][a-zA-Z0-9_-]*$/
+import { searchEvents, ALLOWED_FIELDS, CUSTOM_FIELD_PATTERN } from '../events/search.js'
 
 const api = [
   {
@@ -64,9 +62,18 @@ const api = [
                 return value
               }).required(),
               operator: Joi.string().valid('eq', 'ne', 'lt', 'gt', 'contains', 'notContains').required(),
-              value: Joi.string().allow('').max(500).required()
+              value: Joi.string().min(1).max(500).required()
             })
-          ).max(20).optional(),
+          ).max(20).custom((conditions, helpers) => {
+            const entitySubFields = ['audit.entities.entity', 'audit.entities.action', 'audit.entities.entityid']
+            for (const subField of entitySubFields) {
+              const count = conditions.filter(c => c.field === subField).length
+              if (count > 1) {
+                return helpers.error('any.invalid')
+              }
+            }
+            return conditions
+          }).optional(),
           page: Joi.number().integer().min(1).default(1),
           pageSize: Joi.number().integer().min(1).max(100).default(20)
         }
