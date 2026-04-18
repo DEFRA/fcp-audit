@@ -99,96 +99,104 @@ describe('searchEvents', () => {
     await closeMongoDbConnection()
   })
 
-  test('no filters returns all inserted events', async () => {
-    const result = await searchEvents({ filters: {}, page: 1, pageSize: 20 })
+  test('no conditions returns all inserted events', async () => {
+    const result = await searchEvents({ conditions: [], page: 1, pageSize: 20 })
 
     expect(result.total).toBe(5)
     expect(result.events).toHaveLength(5)
   })
 
-  test('filter by application exact match', async () => {
-    const result = await searchEvents({ filters: { application: 'OTHER' }, page: 1, pageSize: 20 })
+  test('eq operator matches exact application', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'application', operator: 'eq', value: 'OTHER' }], page: 1, pageSize: 20 })
 
     expect(result.total).toBe(1)
     expect(result.events[0].application).toBe('OTHER')
   })
 
-  test('filter by application partial match', async () => {
-    const result = await searchEvents({ filters: { application: 'FCP' }, page: 1, pageSize: 20 })
+  test('ne operator excludes matching events', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'application', operator: 'ne', value: 'OTHER' }], page: 1, pageSize: 20 })
+
+    expect(result.total).toBe(4)
+    expect(result.events.every(e => e.application !== 'OTHER')).toBe(true)
+  })
+
+  test('contains operator matches partial application', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'application', operator: 'contains', value: 'FCP' }], page: 1, pageSize: 20 })
 
     expect(result.total).toBe(4)
     expect(result.events.every(e => e.application.startsWith('FCP'))).toBe(true)
   })
 
-  test('filter by component', async () => {
-    const result = await searchEvents({ filters: { component: 'fcp-audit' }, page: 1, pageSize: 20 })
+  test('notContains operator excludes partial match', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'application', operator: 'notContains', value: 'FCP' }], page: 1, pageSize: 20 })
+
+    expect(result.total).toBe(1)
+    expect(result.events[0].application).toBe('OTHER')
+  })
+
+  test('gt operator on datetime returns events after threshold', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'datetime', operator: 'gt', value: '2025-03-31T23:59:59.999Z' }], page: 1, pageSize: 20 })
 
     expect(result.total).toBe(2)
-    expect(result.events.every(e => e.component === 'fcp-audit')).toBe(true)
+    expect(result.events.every(e => new Date(e.datetime) > new Date('2025-03-31T23:59:59.999Z'))).toBe(true)
   })
 
-  test('filter by auditStatus', async () => {
-    const result = await searchEvents({ filters: { auditStatus: 'failure' }, page: 1, pageSize: 20 })
+  test('lt operator on datetime returns events before threshold', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'datetime', operator: 'lt', value: '2025-02-28T23:59:59.999Z' }], page: 1, pageSize: 20 })
 
-    expect(result.total).toBe(1)
-    expect(result.events[0].audit.status).toBe('failure')
+    expect(result.total).toBe(2)
+    expect(result.events.every(e => new Date(e.datetime) < new Date('2025-02-28T23:59:59.999Z'))).toBe(true)
   })
 
-  test('filter by entityAction', async () => {
-    const result = await searchEvents({ filters: { entityAction: 'created' }, page: 1, pageSize: 20 })
+  test('entity sub-field conditions use elemMatch', async () => {
+    const result = await searchEvents({
+      conditions: [
+        { field: 'audit.entities.entity', operator: 'eq', value: 'application' },
+        { field: 'audit.entities.action', operator: 'eq', value: 'created' }
+      ],
+      page: 1,
+      pageSize: 20
+    })
 
     expect(result.total).toBe(1)
+    expect(result.events[0].audit.entities[0].entity).toBe('application')
     expect(result.events[0].audit.entities[0].action).toBe('created')
   })
 
-  test('filter by entityEntity', async () => {
-    const result = await searchEvents({ filters: { entityEntity: 'person' }, page: 1, pageSize: 20 })
+  test('entity entityid condition returns correct event', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'audit.entities.entityid', operator: 'eq', value: 'PAY-005' }], page: 1, pageSize: 20 })
 
     expect(result.total).toBe(1)
-    expect(result.events[0].audit.entities[0].entity).toBe('person')
+    expect(result.events[0].audit.entities[0].entityid).toBe('PAY-005')
   })
 
-  test('filter by customField and customValue', async () => {
-    const result = await searchEvents({ filters: { customField: 'specialField', customValue: 'uniqueValue' }, page: 1, pageSize: 20 })
+  test('details custom property condition', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'details.specialField', operator: 'eq', value: 'uniqueValue' }], page: 1, pageSize: 20 })
 
     expect(result.total).toBe(1)
     expect(result.events[0].audit.details.specialField).toBe('uniqueValue')
   })
 
-  test('filter by dateFrom only', async () => {
-    const result = await searchEvents({ filters: { dateFrom: '2025-04-01T00:00:00.000Z' }, page: 1, pageSize: 20 })
+  test('details custom property contains operator', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'details.customKey', operator: 'contains', value: 'alph' }], page: 1, pageSize: 20 })
 
-    expect(result.total).toBe(2)
-    expect(result.events.every(e => new Date(e.datetime) >= new Date('2025-04-01T00:00:00.000Z'))).toBe(true)
+    expect(result.total).toBe(1)
+    expect(result.events[0].audit.details.customKey).toBe('alpha')
   })
 
-  test('filter by dateTo only', async () => {
-    const result = await searchEvents({ filters: { dateTo: '2025-02-28T23:59:59.999Z' }, page: 1, pageSize: 20 })
+  test('audit.status field condition', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'audit.status', operator: 'eq', value: 'failure' }], page: 1, pageSize: 20 })
 
-    expect(result.total).toBe(2)
-    expect(result.events.every(e => new Date(e.datetime) <= new Date('2025-02-28T23:59:59.999Z'))).toBe(true)
+    expect(result.total).toBe(1)
+    expect(result.events[0].audit.status).toBe('failure')
   })
 
-  test('filter by dateFrom and dateTo combined', async () => {
+  test('multiple conditions combine as AND', async () => {
     const result = await searchEvents({
-      filters: {
-        dateFrom: '2025-02-01T00:00:00.000Z',
-        dateTo: '2025-03-31T23:59:59.999Z'
-      },
-      page: 1,
-      pageSize: 20
-    })
-
-    expect(result.total).toBe(2)
-    expect(result.events.every(e => {
-      const d = new Date(e.datetime)
-      return d >= new Date('2025-02-01T00:00:00.000Z') && d <= new Date('2025-03-31T23:59:59.999Z')
-    })).toBe(true)
-  })
-
-  test('multiple filters combined', async () => {
-    const result = await searchEvents({
-      filters: { application: 'FCP002', component: 'fcp-audit' },
+      conditions: [
+        { field: 'application', operator: 'eq', value: 'FCP002' },
+        { field: 'component', operator: 'eq', value: 'fcp-audit' }
+      ],
       page: 1,
       pageSize: 20
     })
@@ -198,10 +206,33 @@ describe('searchEvents', () => {
     expect(result.events[0].component).toBe('fcp-audit')
   })
 
+  test('datetime range using two conditions', async () => {
+    const result = await searchEvents({
+      conditions: [
+        { field: 'datetime', operator: 'gt', value: '2025-01-31T23:59:59.999Z' },
+        { field: 'datetime', operator: 'lt', value: '2025-03-31T23:59:59.999Z' }
+      ],
+      page: 1,
+      pageSize: 20
+    })
+
+    expect(result.total).toBe(2)
+    expect(result.events.every(e => {
+      const d = new Date(e.datetime)
+      return d > new Date('2025-01-31T23:59:59.999Z') && d < new Date('2025-03-31T23:59:59.999Z')
+    })).toBe(true)
+  })
+
   test('pagination page 2 with pageSize 2 returns 2 events but total is 4', async () => {
-    const result = await searchEvents({ filters: { application: 'FCP' }, page: 2, pageSize: 2 })
+    const result = await searchEvents({ conditions: [{ field: 'application', operator: 'contains', value: 'FCP' }], page: 2, pageSize: 2 })
 
     expect(result.total).toBe(4)
     expect(result.events).toHaveLength(2)
+  })
+
+  test('condition with empty value is skipped', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'application', operator: 'eq', value: '' }], page: 1, pageSize: 20 })
+
+    expect(result.total).toBe(5)
   })
 })

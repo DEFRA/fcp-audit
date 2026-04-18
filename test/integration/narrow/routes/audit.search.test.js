@@ -74,12 +74,15 @@ describe('GET /api/v1/audit/search', () => {
     expect(payload.meta.total).toBe(10)
   })
 
-  test('with application query param calls searchEvents with correct filter', async () => {
-    const response = await server.inject({ method: 'GET', url: '/api/v1/audit/search?application=FCP001' })
+  test('with conditions query param calls searchEvents with correct conditions', async () => {
+    const url = '/api/v1/audit/search?conditions[0][field]=application&conditions[0][operator]=eq&conditions[0][value]=FCP001'
+    const response = await server.inject({ method: 'GET', url })
 
     expect(response.statusCode).toBe(HTTP_STATUS_OK)
     expect(mockSearchEvents).toHaveBeenCalledWith(
-      expect.objectContaining({ filters: expect.objectContaining({ application: 'FCP001' }) })
+      expect.objectContaining({
+        conditions: [{ field: 'application', operator: 'eq', value: 'FCP001' }]
+      })
     )
   })
 

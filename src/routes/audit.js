@@ -53,35 +53,22 @@ const api = [
       tags: ['api', 'audit'],
       validate: {
         query: {
-          user: Joi.string().max(120).optional(),
-          sessionid: Joi.string().max(120).optional(),
-          correlationid: Joi.string().max(120).optional(),
-          environment: Joi.string().max(120).optional(),
-          version: Joi.string().max(120).optional(),
-          application: Joi.string().max(120).optional(),
-          component: Joi.string().max(120).optional(),
-          ip: Joi.string().max(120).optional(),
-          auditStatus: Joi.string().max(120).optional(),
-          entityEntity: Joi.string().max(120).optional(),
-          entityAction: Joi.string().max(120).optional(),
-          entityId: Joi.string().max(120).optional(),
-          accountSbi: Joi.string().max(120).optional(),
-          accountFrn: Joi.string().max(120).optional(),
-          accountVendor: Joi.string().max(120).optional(),
-          accountOrganisationId: Joi.string().max(120).optional(),
-          customField: Joi.string().max(120).optional(),
-          customValue: Joi.string().max(120).optional(),
-          dateFrom: Joi.date().iso().optional(),
-          dateTo: Joi.date().iso().optional(),
+          conditions: Joi.array().items(
+            Joi.object({
+              field: Joi.string().max(120).required(),
+              operator: Joi.string().valid('eq', 'ne', 'lt', 'gt', 'contains', 'notContains').required(),
+              value: Joi.string().allow('').max(500).required()
+            })
+          ).optional(),
           page: Joi.number().integer().min(1).default(1),
           pageSize: Joi.number().integer().min(1).max(100).default(20)
         }
       }
     },
     handler: async (request, h) => {
-      const { page, pageSize, ...filters } = request.query
+      const { page, pageSize, conditions = [] } = request.query
 
-      const { events, total } = await searchEvents({ filters, page, pageSize })
+      const { events, total } = await searchEvents({ conditions, page, pageSize })
 
       return h.response({
         data: { events },

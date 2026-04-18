@@ -3,76 +3,68 @@ import { config } from '../config/config.js'
 
 const maxTimeMS = config.get('mongo.maxTimeMS')
 
-function buildQuery (filters) {
-  const query = {}
+const entitySubFields = new Set(['audit.entities.entity', 'audit.entities.action', 'audit.entities.entityid'])
 
-  const stringFields = [
-    ['user', 'user'],
-    ['sessionid', 'sessionid'],
-    ['correlationid', 'correlationid'],
-    ['environment', 'environment'],
-    ['version', 'version'],
-    ['application', 'application'],
-    ['component', 'component'],
-    ['ip', 'ip'],
-    ['auditStatus', 'audit.status'],
-    ['accountSbi', 'audit.accounts.sbi'],
-    ['accountFrn', 'audit.accounts.frn'],
-    ['accountVendor', 'audit.accounts.vendor'],
-    ['accountOrganisationId', 'audit.accounts.organisationId']
-  ]
+function applyOperator (mongoField, operator, value) {
+  const isDateField = mongoField === 'datetime'
+  const coercedValue = (isDateField && (operator === 'lt' || operator === 'gt' || operator === 'eq' || operator === 'ne'))
+    ? new Date(value)
+    : value
 
-  for (const [filterKey, mongoField] of stringFields) {
-    if (typeof filters[filterKey] === 'string' && filters[filterKey] !== '') {
-      query[mongoField] = { $regex: filters[filterKey], $options: 'i' }
-    }
+  switch (operator) {
+    case 'eq': return { [mongoField]: { $eq: coercedValue } }
+    case 'ne': return { [mongoField]: { $ne: coercedValue } }
+    case 'lt': return { [mongoField]: { $lt: coercedValue } }
+    case 'gt': return { [mongoField]: { $gt: coercedValue } }
+    case 'contains': return { [mongoField]: { $regex: value, $options: 'i' } }
+    case 'notContains': return { [mongoField]: { $not: { $regex: value, $options: 'i' } } }
+    default: return {}
   }
+}
 
-  const entityFields = [
-    ['entityEntity', 'entity'],
-    ['entityAction', 'action'],
-    ['entityId', 'entityid']
-  ]
+function resolveMongoField (field) {
+  if (field.startsWith('details.')) {
+    return `audit.${field}`
+  }
+  return field
+}
 
-  for (const [filterKey, entityField] of entityFields) {
-    if (typeof filters[filterKey] === 'string' && filters[filterKey] !== '') {
-      query['audit.entities'] = {
-        ...query['audit.entities'],
-        $elemMatch: {
-          ...(query['audit.entities']?.$elemMatch ?? {}),
-          [entityField]: { $regex: filters[filterKey], $options: 'i' }
-        }
+function buildConditionsQuery (conditions) {
+  const query = {}
+  const entityElemMatch = {}
+
+  for (const { field, operator, value } of conditions) {
+    if (typeof field !== 'string' || field === '' || typeof value !== 'string' || value === '') continue
+
+    if (entitySubFields.has(field)) {
+      const subField = field.split('.')[2]
+      const subCondition = applyOperator(subField, operator, value)[subField]
+      if (subCondition !== undefined) {
+        entityElemMatch[subField] = subCondition
+      }
+    } else {
+      const mongoField = resolveMongoField(field)
+      const subCondition = applyOperator(mongoField, operator, value)[mongoField]
+      if (query[mongoField] !== undefined && typeof query[mongoField] === 'object' && typeof subCondition === 'object') {
+        Object.assign(query[mongoField], subCondition)
+      } else {
+        query[mongoField] = subCondition
       }
     }
   }
 
-  const { customField, customValue } = filters
-  if (typeof customField === 'string' && customField !== '' && typeof customValue === 'string' && customValue !== '') {
-    query[`audit.details.${customField}`] = { $regex: customValue, $options: 'i' }
-  }
-
-  const { dateFrom, dateTo } = filters
-  const hasDateFrom = dateFrom instanceof Date || (typeof dateFrom === 'string' && dateFrom !== '')
-  const hasDateTo = dateTo instanceof Date || (typeof dateTo === 'string' && dateTo !== '')
-
-  if (hasDateFrom || hasDateTo) {
-    query.datetime = {}
-    if (hasDateFrom) {
-      query.datetime.$gte = new Date(dateFrom)
-    }
-    if (hasDateTo) {
-      query.datetime.$lte = new Date(dateTo)
-    }
+  if (Object.keys(entityElemMatch).length > 0) {
+    query['audit.entities'] = { $elemMatch: entityElemMatch }
   }
 
   return query
 }
 
-export async function searchEvents ({ filters = {}, page, pageSize }) {
+export async function searchEvents ({ conditions = [], page, pageSize }) {
   const { collections } = getMongoDb()
   const { audit: auditCollection } = collections
 
-  const query = buildQuery(filters)
+  const query = buildConditionsQuery(conditions)
 
   const [total, events] = await Promise.all([
     auditCollection.countDocuments(query),

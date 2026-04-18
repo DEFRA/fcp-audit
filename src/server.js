@@ -2,6 +2,7 @@ import Hapi from '@hapi/hapi'
 import Joi from 'joi'
 import Jwt from '@hapi/jwt'
 import Apiv from 'apiv'
+import qs from 'qs'
 
 import { config } from './config/config.js'
 import { router } from './plugins/router.js'
@@ -42,6 +43,9 @@ async function createServer () {
     },
     router: {
       stripTrailingSlash: true
+    },
+    query: {
+      parser: (params) => qs.parse(params)
     }
   })
 
