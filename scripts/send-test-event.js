@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 
 // ---------------------------------------------------------------------------
@@ -219,7 +219,7 @@ const eventCount = eventsIdx !== -1 && args[eventsIdx + 1]
   ? Number.parseInt(args[eventsIdx + 1], 10)
   : 1
 
-if (isNaN(eventCount) || eventCount < 1) {
+if (Number.isNaN(eventCount) || eventCount < 1) {
   console.error('✗ --events requires a positive integer')
   process.exit(1)
 }
