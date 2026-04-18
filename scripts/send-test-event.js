@@ -92,6 +92,14 @@ const randomSbi = () => String(randomInt(100000000, 999999999))
 
 const randomPmcode = () => String(randomInt(1000, 9999))
 
+const buildAuditDetails = () => {
+  if (Math.random() > 0.5) {
+    return undefined
+  }
+  const key = randomItem(['custom1', 'custom2'])
+  return { [key]: key }
+}
+
 // ---------------------------------------------------------------------------
 // Builder functions
 // ---------------------------------------------------------------------------
@@ -119,10 +127,13 @@ const buildAuditObject = (rand) => {
   const pickedKeys = [...ACCOUNT_KEYS].sort(() => Math.random() - 0.5).slice(0, accountCount)
   const accounts = Object.fromEntries(pickedKeys.map((k) => [k, randomSbi()]))
 
+  const details = buildAuditDetails()
+
   return {
     entities,
     accounts,
-    status: randomItem(STATUSES)
+    status: randomItem(STATUSES),
+    ...(details !== undefined && { details })
   }
 }
 
