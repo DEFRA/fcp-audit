@@ -82,6 +82,8 @@ const testAuditEvents = [{
   received: new Date('2024-01-01T13:00:01.000Z')
 }]
 
+const withoutInternals = ({ _id, received, ...rest }) => rest
+
 let collections
 
 beforeAll(async () => {
@@ -104,31 +106,34 @@ describe('getEvents', () => {
   test('should retrieve all audit events', async () => {
     const { events } = await getEvents({ page: 1, pageSize: 10 })
     expect(events).toHaveLength(4)
-    expect(events).toEqual(expect.arrayContaining(testAuditEvents))
+    expect(events).toEqual(expect.arrayContaining(testAuditEvents.map(withoutInternals)))
   })
 
   test('should return events in descending order of received timestamp by default', async () => {
+    const expectedOrder = [...testAuditEvents]
+      .sort((a, b) => b.received - a.received)
+      .map(withoutInternals)
     const { events } = await getEvents({ page: 1, pageSize: 10 })
-    const sorted = [...events].sort((a, b) => b.received - a.received)
-    expect(events).toEqual(sorted)
+    expect(events).toEqual(expectedOrder)
   })
 
   test('should explicitly order events by received descending', async () => {
+    const expectedOrder = [...testAuditEvents]
+      .sort((a, b) => b.received - a.received)
+      .map(withoutInternals)
     const { events } = await getEvents({ page: 1, pageSize: 10 })
-    for (let i = 0; i < events.length - 1; i++) {
-      expect(events[i].received >= events[i + 1].received).toBe(true)
-    }
+    expect(events).toEqual(expectedOrder)
   })
 
   test('should return only the first page of results with custom pageSize (received desc)', async () => {
-    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received)
+    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received).map(withoutInternals)
     const { events } = await getEvents({ page: 1, pageSize: 2 })
     expect(events).toEqual([sorted[0], sorted[1]])
     expect(events).toHaveLength(2)
   })
 
   test('should return the second page of results with custom pageSize (received desc)', async () => {
-    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received)
+    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received).map(withoutInternals)
     const { events } = await getEvents({ page: 2, pageSize: 2 })
     expect(events).toEqual([sorted[2], sorted[3]])
     expect(events).toHaveLength(2)
@@ -141,14 +146,14 @@ describe('getEvents', () => {
   })
 
   test('should handle page size of 1', async () => {
-    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received)
+    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received).map(withoutInternals)
     const { events } = await getEvents({ page: 1, pageSize: 1 })
     expect(events).toEqual([sorted[0]])
     expect(events).toHaveLength(1)
   })
 
   test('should return correct events for second page with page size of 1', async () => {
-    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received)
+    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received).map(withoutInternals)
     const { events } = await getEvents({ page: 2, pageSize: 1 })
     expect(events).toEqual([sorted[1]])
     expect(events).toHaveLength(1)
@@ -171,16 +176,15 @@ describe('getEvents', () => {
   })
 
   test('should return correct events for middle page', async () => {
-    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received)
+    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received).map(withoutInternals)
     const { events } = await getEvents({ page: 3, pageSize: 1 })
     expect(events).toEqual([sorted[2]])
     expect(events).toHaveLength(1)
   })
 
-  test('should preserve all event properties including _id', async () => {
+  test('should preserve all event properties', async () => {
     const { events } = await getEvents({ page: 1, pageSize: 1 })
     const event = events[0]
-    expect(event._id).toBeDefined()
     expect(event.user).toBeDefined()
     expect(event.sessionid).toBeDefined()
     expect(event.datetime).toBeDefined()
@@ -190,7 +194,8 @@ describe('getEvents', () => {
     expect(event.component).toBeDefined()
     expect(event.ip).toBeDefined()
     expect(event.audit).toBeDefined()
-    expect(event.received).toBeDefined()
+    expect(event._id).toBeUndefined()
+    expect(event.received).toBeUndefined()
   })
 
   test('should preserve audit nested properties', async () => {
@@ -215,12 +220,12 @@ describe('getEvents', () => {
     await clearAllCollections(collections)
     await collections.audit.insertOne(testAuditEvents[0])
     const { events } = await getEvents({ page: 1, pageSize: 10 })
-    expect(events).toEqual([testAuditEvents[0]])
+    expect(events).toEqual([withoutInternals(testAuditEvents[0])])
     expect(events).toHaveLength(1)
   })
 
   test('should correctly skip events for page 2', async () => {
-    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received)
+    const sorted = [...testAuditEvents].sort((a, b) => b.received - a.received).map(withoutInternals)
     const { events } = await getEvents({ page: 2, pageSize: 3 })
     expect(events).toEqual([sorted[3]])
     expect(events).toHaveLength(1)

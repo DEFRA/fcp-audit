@@ -45,7 +45,7 @@ async function createServer () {
       stripTrailingSlash: true
     },
     query: {
-      parser: (params) => qs.parse(params)
+      parser: (params) => qs.parse(params, { allowPrototypes: false, arrayLimit: 30 })
     }
   })
 

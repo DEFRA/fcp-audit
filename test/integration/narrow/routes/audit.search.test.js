@@ -15,9 +15,13 @@ vi.mock('../../../../src/events/summary.js', () => ({
   getSummary: mockGetSummary
 }))
 
-vi.mock('../../../../src/events/search.js', () => ({
-  searchEvents: mockSearchEvents
-}))
+vi.mock('../../../../src/events/search.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    searchEvents: mockSearchEvents
+  }
+})
 
 const { createServer } = await import('../../../../src/server.js')
 
@@ -94,5 +98,19 @@ describe('GET /api/v1/audit/search', () => {
     const payload = JSON.parse(response.payload)
     expect(payload.meta.page).toBe(2)
     expect(payload.meta.pageSize).toBe(5)
+  })
+
+  test('with disallowed field returns 400', async () => {
+    const url = '/api/v1/audit/search?conditions[0][field]=_id&conditions[0][operator]=eq&conditions[0][value]=anything'
+    const response = await server.inject({ method: 'GET', url })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  test('with valid custom details field returns 200', async () => {
+    const url = '/api/v1/audit/search?conditions[0][field]=details.caseid&conditions[0][operator]=eq&conditions[0][value]=CRM-001'
+    const response = await server.inject({ method: 'GET', url })
+
+    expect(response.statusCode).toBe(HTTP_STATUS_OK)
   })
 })

@@ -2,7 +2,9 @@ import Joi from 'joi'
 import { getPageLinks } from '../common/helpers/pagination.js'
 import { getEvents } from '../events/get.js'
 import { getSummary } from '../events/summary.js'
-import { searchEvents } from '../events/search.js'
+import { searchEvents, ALLOWED_FIELDS } from '../events/search.js'
+
+const CUSTOM_FIELD_PATTERN = /^details\.[a-zA-Z_][a-zA-Z0-9_-]*$/
 
 const api = [
   {
@@ -55,11 +57,16 @@ const api = [
         query: {
           conditions: Joi.array().items(
             Joi.object({
-              field: Joi.string().max(120).required(),
+              field: Joi.string().max(120).custom((value, helpers) => {
+                if (!ALLOWED_FIELDS.has(value) && !CUSTOM_FIELD_PATTERN.test(value)) {
+                  return helpers.error('any.invalid')
+                }
+                return value
+              }).required(),
               operator: Joi.string().valid('eq', 'ne', 'lt', 'gt', 'contains', 'notContains').required(),
               value: Joi.string().allow('').max(500).required()
             })
-          ).optional(),
+          ).max(20).optional(),
           page: Joi.number().integer().min(1).default(1),
           pageSize: Joi.number().integer().min(1).max(100).default(20)
         }

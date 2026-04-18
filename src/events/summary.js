@@ -7,35 +7,34 @@ export async function getSummary () {
   const { collections } = getMongoDb()
   const { audit: auditCollection } = collections
 
-  const [total, applications] = await Promise.all([
-    auditCollection.countDocuments({}),
-    auditCollection.aggregate([
-      {
-        $group: {
-          _id: { application: '$application', component: '$component' },
-          total: { $sum: 1 }
-        }
-      },
-      {
-        $group: {
-          _id: '$_id.application',
-          total: { $sum: '$total' },
-          components: {
-            $push: {
-              component: '$_id.component',
-              total: '$total'
-            }
+  const applications = await auditCollection.aggregate([
+    {
+      $group: {
+        _id: { application: '$application', component: '$component' },
+        total: { $sum: 1 }
+      }
+    },
+    {
+      $group: {
+        _id: '$_id.application',
+        total: { $sum: '$total' },
+        components: {
+          $push: {
+            component: '$_id.component',
+            total: '$total'
           }
         }
-      },
-      {
-        $sort: { _id: 1 }
       }
-    ], {
-      readPreference: 'secondaryPreferred',
-      maxTimeMS
-    }).toArray()
-  ])
+    },
+    {
+      $sort: { _id: 1 }
+    }
+  ], {
+    readPreference: 'secondaryPreferred',
+    maxTimeMS
+  }).toArray()
+
+  const total = applications.reduce((sum, a) => sum + a.total, 0)
 
   return {
     total,

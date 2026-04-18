@@ -3,8 +3,37 @@ import { config } from '../config/config.js'
 
 const maxTimeMS = config.get('mongo.maxTimeMS')
 
+export const ALLOWED_FIELDS = new Set([
+  'user',
+  'sessionid',
+  'correlationid',
+  'datetime',
+  'environment',
+  'version',
+  'application',
+  'component',
+  'ip',
+  'audit.status',
+  'audit.entities.entity',
+  'audit.entities.action',
+  'audit.entities.entityid',
+  'audit.accounts.sbi',
+  'audit.accounts.frn',
+  'audit.accounts.vendor',
+  'audit.accounts.trader',
+  'audit.accounts.organisationId',
+  'audit.accounts.crn',
+  'audit.accounts.personId'
+])
+
+const CUSTOM_FIELD_PATTERN = /^details\.[a-zA-Z_][a-zA-Z0-9_-]*$/
+
 const entitySubFields = new Set(['audit.entities.entity', 'audit.entities.action', 'audit.entities.entityid'])
 const dateCoercibleOperators = new Set(['eq', 'ne', 'lt', 'gt'])
+
+function escapeRegex (value) {
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)
+}
 
 function coerceValue (field, operator, value) {
   if (field === 'datetime' && dateCoercibleOperators.has(operator)) {
@@ -19,8 +48,8 @@ function buildCondition (operator, value) {
     case 'ne': return { $ne: value }
     case 'lt': return { $lt: value }
     case 'gt': return { $gt: value }
-    case 'contains': return { $regex: value, $options: 'i' }
-    case 'notContains': return { $not: { $regex: value, $options: 'i' } }
+    case 'contains': return { $regex: escapeRegex(value), $options: 'i' }
+    case 'notContains': return { $not: { $regex: escapeRegex(value), $options: 'i' } }
     default: return undefined
   }
 }
@@ -53,8 +82,23 @@ function applyRegularCondition (query, field, operator, value) {
   }
 }
 
-function isValidCondition ({ field, value }) {
-  return typeof field === 'string' && field !== '' && typeof value === 'string' && value !== ''
+function isValidCondition ({ field, operator, value }) {
+  if (typeof field !== 'string' || field === '') {
+    return false
+  }
+  if (typeof value !== 'string' || value === '') {
+    return false
+  }
+  if (!ALLOWED_FIELDS.has(field) && !CUSTOM_FIELD_PATTERN.test(field)) {
+    return false
+  }
+  if (field === 'datetime' && dateCoercibleOperators.has(operator)) {
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) {
+      return false
+    }
+  }
+  return true
 }
 
 function buildConditionsQuery (conditions) {
@@ -81,18 +125,28 @@ export async function searchEvents ({ conditions = [], page, pageSize }) {
   const { audit: auditCollection } = collections
 
   const query = buildConditionsQuery(conditions)
+  const skip = (page - 1) * pageSize
 
-  const [total, events] = await Promise.all([
-    auditCollection.countDocuments(query),
-    auditCollection.find(query, {
-      sort: { received: -1 },
-      readPreference: 'secondaryPreferred',
-      maxTimeMS
-    })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .toArray()
-  ])
+  const [result] = await auditCollection.aggregate([
+    { $match: query },
+    {
+      $facet: {
+        total: [{ $count: 'count' }],
+        events: [
+          { $sort: { received: -1 } },
+          { $skip: skip },
+          { $limit: pageSize },
+          { $project: { _id: 0, received: 0 } }
+        ]
+      }
+    }
+  ], {
+    readPreference: 'secondaryPreferred',
+    maxTimeMS
+  }).toArray()
 
-  return { events, total }
+  return {
+    events: result.events,
+    total: result.total[0]?.count ?? 0
+  }
 }

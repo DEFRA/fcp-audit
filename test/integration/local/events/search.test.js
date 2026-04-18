@@ -235,4 +235,46 @@ describe('searchEvents', () => {
 
     expect(result.total).toBe(5)
   })
+
+  test('condition with disallowed field is skipped', async () => {
+    const result = await searchEvents({ conditions: [{ field: '_id', operator: 'eq', value: 'anything' }], page: 1, pageSize: 20 })
+
+    expect(result.total).toBe(5)
+  })
+
+  test('condition with invalid date value is skipped', async () => {
+    const result = await searchEvents({ conditions: [{ field: 'datetime', operator: 'gt', value: 'not-a-date' }], page: 1, pageSize: 20 })
+
+    expect(result.total).toBe(5)
+  })
+
+  describe('regex literal matching', () => {
+    beforeAll(async () => {
+      await collections.audit.insertMany([
+        {
+          ...auditEventBase,
+          application: 'FCP+001',
+          component: 'fcp-test',
+          received: new Date(2025, 5, 1),
+          audit: {
+            ...auditEventBase.audit,
+            entities: [{ entity: 'application', action: 'created', entityid: 'APP-006' }],
+            accounts: { sbi: '666666666' },
+            status: 'success'
+          }
+        }
+      ])
+    })
+
+    afterAll(async () => {
+      await collections.audit.deleteMany({ application: 'FCP+001' })
+    })
+
+    test('contains operator with regex special characters matches literally', async () => {
+      const result = await searchEvents({ conditions: [{ field: 'application', operator: 'contains', value: 'FCP+001' }], page: 1, pageSize: 20 })
+
+      expect(result.total).toBe(1)
+      expect(result.events[0].application).toBe('FCP+001')
+    })
+  })
 })
