@@ -221,6 +221,52 @@ Once running, the fcp-audit service will be available at:
 
 The service will automatically start consuming events from the SQS queue and storing them in MongoDB.
 
+## Sending test events
+
+A script is provided to manually send test audit events to the local SQS queue. This is useful for populating data during development.
+
+> **Prerequisite:** The service must be running locally via `npm run docker:dev` before sending events.
+
+### Usage
+
+```bash
+node scripts/send-test-event.js [options]
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| _(none)_ | Send a single event containing both `audit` and `security` objects |
+| `--audit` | Send an event with an `audit` object only |
+| `--security` | Send an event with a `security` object only |
+| `--rand` | Send a randomly generated event. Randomises the payload combination (audit-only, security-only, or both), field values, application/component, entities, and accounts |
+| `--events <n>` | Send `n` events (default: `1`). Each event is independently generated when combined with `--rand` |
+
+### Examples
+
+```bash
+# Send one event with both audit and security objects
+node scripts/send-test-event.js
+
+# Send one audit-only event
+node scripts/send-test-event.js --audit
+
+# Send one security-only event
+node scripts/send-test-event.js --security
+
+# Send 10 randomly varied events
+node scripts/send-test-event.js --rand --events 10
+
+# Send 50 audit-only events with fixed values
+node scripts/send-test-event.js --audit --events 50
+```
+
+### Notes
+
+- Events with a `security` object are forwarded to SOC but **not** persisted in MongoDB. Only events containing an `audit` object are stored.
+- When using `--rand`, the script randomly selects from all three valid applications (`Single Front Door`, `Data Access Layer`, `Grants Platform`) and their corresponding components.
+
 ## Licence
 
 THIS INFORMATION IS LICENSED UNDER THE CONDITIONS OF THE OPEN GOVERNMENT LICENCE found at:

@@ -8,6 +8,7 @@ export async function getEvents ({ page, pageSize }) {
   const { audit: auditCollection } = collections
 
   const cursor = auditCollection.find({}, {
+    projection: { _id: 0, received: 0 },
     sort: { received: -1 },
     readPreference: 'secondaryPreferred',
     maxTimeMS
