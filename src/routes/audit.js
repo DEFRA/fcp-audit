@@ -40,7 +40,7 @@ const api = [
       description: 'Get audit event summary',
       tags: ['api', 'audit']
     },
-    handler: async (request, h) => {
+    handler: async (_request, h) => {
       const summary = await getSummary()
       return h.response({ data: { summary } })
     }

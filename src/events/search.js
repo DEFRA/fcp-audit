@@ -34,7 +34,9 @@ function buildConditionsQuery (conditions) {
   const entityElemMatch = {}
 
   for (const { field, operator, value } of conditions) {
-    if (typeof field !== 'string' || field === '' || typeof value !== 'string' || value === '') continue
+    if (typeof field !== 'string' || field === '' || typeof value !== 'string' || value === '') {
+      continue
+    }
 
     if (entitySubFields.has(field)) {
       const subField = field.split('.')[2]
