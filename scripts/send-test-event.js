@@ -212,7 +212,15 @@ const isRand = args.includes('--rand')
 const isAuditOnly = !isRand && args.includes('--audit')
 const isSecurityOnly = !isRand && args.includes('--security')
 
-const mode = isAuditOnly ? 'audit' : isSecurityOnly ? 'security' : 'both'
+let mode
+
+if (isAuditOnly) {
+  mode = 'audit'
+} else if (isSecurityOnly) {
+  mode = 'security'
+} else {
+  mode = 'both'
+}
 
 const eventsIdx = args.indexOf('--events')
 const eventCount = eventsIdx !== -1 && args[eventsIdx + 1]
