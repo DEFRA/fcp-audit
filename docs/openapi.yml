@@ -23,7 +23,7 @@ paths:
         - Health
       summary: Service health check
       description: |
-        Returns the health status of the FDM service. This endpoint can be used
+        Returns the health status of the FCP Audit service. This endpoint can be used
         for monitoring, load balancer health checks, and service discovery.
       operationId: getHealth
       security: []
@@ -180,6 +180,158 @@ paths:
                     statusCode: 403
                     error: "Forbidden"
                     message: "User does not have required security group membership"
+
+  /api/v1/audit/summary:
+    get:
+      tags:
+        - Audit
+      summary: Get audit event summary
+      description: |
+        Returns a summary of audit events grouped by application and component,
+        including total event counts.
+
+        **Authentication Required**: This endpoint requires a valid JWT Bearer token from Microsoft Entra ID
+        with appropriate security group membership.
+      operationId: getAuditSummary
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Authorization
+          in: header
+          description: Bearer token for authentication
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik..."
+          style: simple
+      responses:
+        '200':
+          description: Successfully retrieved audit summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditSummaryResponse'
+              examples:
+                basic:
+                  summary: Audit summary response
+                  value:
+                    data:
+                      summary:
+                        total: 42
+                        applications:
+                          - application: Single Front Door
+                            total: 30
+                            components:
+                              - component: fcp-sfd-frontend
+                                total: 30
+                          - application: Payment Hub
+                            total: 12
+                            components:
+                              - component: fcp-backend-api
+                                total: 12
+        '401':
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Valid token but insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/audit/search:
+    get:
+      tags:
+        - Audit
+      summary: Search audit events
+      description: |
+        Search audit events using one or more filter conditions. Each condition
+        specifies a field, an operator, and a value. Conditions are combined with AND logic.
+
+        Up to 20 conditions are supported. Each entity sub-field
+        (`audit.entities.entity`, `audit.entities.action`, `audit.entities.entityid`)
+        may only appear once.
+
+        **Authentication Required**: This endpoint requires a valid JWT Bearer token from Microsoft Entra ID
+        with appropriate security group membership.
+      operationId: searchAuditEvents
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Authorization
+          in: header
+          description: Bearer token for authentication
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik..."
+          style: simple
+        - name: conditions
+          in: query
+          description: Array of search conditions
+          required: false
+          style: deepObject
+          explode: true
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              $ref: '#/components/schemas/SearchCondition'
+        - name: page
+          in: query
+          description: Page number for paginated results (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: pageSize
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 20
+      responses:
+        '200':
+          description: Successfully retrieved matching audit events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSearchResponse'
+              examples:
+                basic:
+                  summary: Search results with total count
+                  value:
+                    data:
+                      events: []
+                    links:
+                      self: "/api/v1/audit/search?page=1&pageSize=20"
+                      next: null
+                      prev: null
+                    meta:
+                      page: 1
+                      pageSize: 20
+                      total: 0
+        '401':
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Valid token but insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   schemas:
@@ -404,6 +556,138 @@ components:
           required:
             - page
             - pageSize
+      required:
+        - data
+        - links
+        - meta
+
+    SearchCondition:
+      type: object
+      description: A single filter condition for searching audit events
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          maxLength: 120
+          description: |
+            The event field to filter on. Allowed values:
+            `user`, `sessionid`, `correlationid`, `datetime`, `environment`, `version`,
+            `application`, `component`, `ip`, `audit.status`,
+            `audit.entities.entity`, `audit.entities.action`, `audit.entities.entityid`,
+            `audit.accounts.sbi`, `audit.accounts.frn`, `audit.accounts.vendor`,
+            `audit.accounts.trader`, `audit.accounts.organisationId`, `audit.accounts.crn`,
+            `audit.accounts.personId`, or any custom detail field matching `details.<name>`.
+          example: application
+        operator:
+          type: string
+          description: The comparison operator
+          enum: [eq, ne, lt, gt, contains, notContains]
+          example: eq
+        value:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: The value to compare against
+          example: Single Front Door
+
+    AuditSummaryResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            summary:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  description: Total number of audit events
+                  example: 42
+                applications:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      application:
+                        type: string
+                        description: Application name
+                        example: Single Front Door
+                      total:
+                        type: integer
+                        description: Total events for this application
+                        example: 30
+                      components:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            component:
+                              type: string
+                              description: Component name
+                              example: fcp-sfd-frontend
+                            total:
+                              type: integer
+                              description: Total events for this component
+                              example: 30
+              required:
+                - total
+                - applications
+          required:
+            - summary
+      required:
+        - data
+
+    PaginatedSearchResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            events:
+              type: array
+              items:
+                $ref: '#/components/schemas/AuditEvent'
+          required:
+            - events
+        links:
+          type: object
+          description: Pagination links for navigation
+          properties:
+            self:
+              type: string
+              format: uri
+            next:
+              type:
+                - string
+                - 'null'
+              format: uri
+            prev:
+              type:
+                - string
+                - 'null'
+              format: uri
+          required:
+            - self
+        meta:
+          type: object
+          description: Pagination metadata including total count
+          properties:
+            page:
+              type: integer
+              description: Current page number
+            pageSize:
+              type: integer
+              description: Number of items per page
+            total:
+              type: integer
+              description: Total number of matching events
+          required:
+            - page
+            - pageSize
+            - total
       required:
         - data
         - links
