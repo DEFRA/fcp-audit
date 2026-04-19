@@ -20,7 +20,7 @@ This application is intended to be run in a Docker container to ensure consisten
 
 Docker can be installed from [Docker's official website](https://docs.docker.com/get-docker/).
 
-> The test suite includes integration tests which are dependent on a Postgres container so cannot be run without Docker.
+> The test suite includes integration tests which are dependent on a MongoDB container so cannot be run without Docker.
 
 ## Local development
 
@@ -42,7 +42,7 @@ npm run docker:dev
 
 ### Testing
 
-To test the application run:
+Tests **must** be run using Docker as configuration is applied via Docker Compose:
 
 ```bash
 npm run docker:test
@@ -54,9 +54,27 @@ Tests can also be run in watch mode to support Test Driven Development (TDD):
 npm run docker:test:watch
 ```
 
+> Do not run `npm test` directly — environment configuration is only set correctly when running via Docker.
+
+## REST API
+
+The service exposes the following endpoints at `http://localhost:3004`:
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|--------------|-------------|
+| `GET` | `/health` | No | Service health check |
+| `GET` | `/documentation` | No | Swagger UI (development only) |
+| `GET` | `/api/v1/audit` | Yes | List audit events (paginated) |
+| `GET` | `/api/v1/audit/summary` | Yes | Summary of events by application/component |
+| `GET` | `/api/v1/audit/search` | Yes | Search audit events by conditions |
+
+All authenticated endpoints require a valid JWT Bearer token from Microsoft Entra ID with the appropriate security group membership.
+
+For full schema details see [`docs/openapi.yml`](docs/openapi.yml).
+
 ## Environment Variables
 
-The FDM service can be configured using the following environment variables:
+The FCP Audit service can be configured using the following environment variables:
 
 > Note: Default valid values are already applied for local development and testing through Docker Compose.
 
