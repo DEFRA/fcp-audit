@@ -137,5 +137,10 @@ describe('saveEvent', () => {
     // Same event should generate same ID
     const id1Duplicate = generateAuditId(auditEvent)
     expect(id1).toBe(id1Duplicate)
+
+    // Events differing only by component should generate unique IDs
+    const differentComponentEvent = { ...auditEvent, component: 'fcp-other' }
+    const id3 = generateAuditId(differentComponentEvent)
+    expect(id1).not.toBe(id3)
   })
 })
