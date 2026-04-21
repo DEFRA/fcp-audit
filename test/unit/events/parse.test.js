@@ -185,7 +185,7 @@ describe('parseEvent - key normalisation', () => {
           }
         },
         Security: {
-          PmCode: '0201',
+          PmcCode: '0201',
           Details: {
             TransactionCode: '2306'
           }
@@ -202,7 +202,7 @@ describe('parseEvent - key normalisation', () => {
         }
       },
       security: {
-        pmcode: '0201',
+        pmccode: '0201',
         details: {
           transactioncode: '2306'
         }

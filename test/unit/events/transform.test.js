@@ -101,7 +101,7 @@ describe('transform event', () => {
 
     test('should not contain security properties', () => {
       const result = transformEvent(event)
-      expect(result.auditEvent.pmcode).toBeUndefined()
+      expect(result.auditEvent.pmccode).toBeUndefined()
       expect(result.auditEvent.priority).toBeUndefined()
       expect(result.auditEvent.details).toBeUndefined()
     })
@@ -154,9 +154,9 @@ describe('transform event', () => {
       expect(result.socEvent.ip).toBe(event.ip)
     })
 
-    test('should contain pmcode property', () => {
+    test('should contain pmccode property', () => {
       const result = transformEvent(event)
-      expect(result.socEvent.pmcode).toBe(event.security.pmcode)
+      expect(result.socEvent.pmccode).toBe(event.security.pmccode)
     })
 
     test('should contain priority property', () => {
@@ -189,7 +189,7 @@ describe('transform event', () => {
 
     test('should only contain expected properties', () => {
       const result = transformEvent(event)
-      const expectedKeys = ['user', 'sessionid', 'correlationid', 'datetime', 'environment', 'version', 'application', 'component', 'ip', 'pmcode', 'priority', 'details']
+      const expectedKeys = ['user', 'sessionid', 'correlationid', 'datetime', 'environment', 'version', 'application', 'component', 'ip', 'pmccode', 'priority', 'details']
       expect(Object.keys(result.socEvent)).toEqual(expectedKeys)
     })
   })

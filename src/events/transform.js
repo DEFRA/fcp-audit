@@ -31,7 +31,7 @@ function createSocEvent (event) {
     application: event.application,
     component: event.component,
     ip: event.ip,
-    pmcode: event.security.pmcode,
+    pmccode: event.security.pmccode,
     priority: event.security.priority,
     details: { ...event.security.details }
   }

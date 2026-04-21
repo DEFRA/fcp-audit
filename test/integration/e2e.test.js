@@ -57,6 +57,6 @@ describe('audit event scenarios', () => {
     const savedMessages = await collections.audit.find({}).toArray()
     expect(savedMessages).toHaveLength(0)
     expect(mockAudit).toHaveBeenCalledTimes(1)
-    expect(mockAudit).toHaveBeenCalledWith(expect.objectContaining({ pmcode: event.security.pmcode }))
+    expect(mockAudit).toHaveBeenCalledWith(expect.objectContaining({ pmccode: event.security.pmccode }))
   })
 })

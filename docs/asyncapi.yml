@@ -129,7 +129,7 @@ components:
             component: fcp-sfd-frontend
             ip: 192.168.1.100
             security:
-              pmcode: '0201'
+              pmccode: '0201'
               priority: 0
               details:
                 transactioncode: '2306'
@@ -176,7 +176,7 @@ components:
             component: fcp-security-service
             ip: 172.16.0.10
             security:
-              pmcode: '0901'
+              pmccode: '0901'
               priority: 5
               details:
                 transactioncode: '9001'
@@ -236,10 +236,10 @@ components:
             
             At least one of security or audit must be provided.
           required:
-            - pmcode
+            - pmccode
           properties:
-            pmcode:
-              $ref: '#/components/schemas/PmCode'
+            pmccode:
+              $ref: '#/components/schemas/PmcCode'
             priority:
               $ref: '#/components/schemas/Priority'
             details:
@@ -357,7 +357,7 @@ components:
         - If request originates from within the service itself (scheduled task/system trigger), then the self host IP should be provided.
       example: 192.168.1.100
 
-    PmCode:
+    PmcCode:
       type: string
       maxLength: 4
       description: |

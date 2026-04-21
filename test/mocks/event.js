@@ -9,7 +9,7 @@ export const event = {
   component: 'fcp-audit',
   ip: '192.168.1.100',
   security: {
-    pmcode: '0706',
+    pmccode: '0706',
     priority: 0,
     details: {
       transactioncode: '2306',
@@ -65,7 +65,7 @@ export const socEvent = {
   application: 'FCP001',
   component: 'fcp-audit',
   ip: '192.168.1.100',
-  pmcode: '0706',
+  pmccode: '0706',
   priority: 0,
   details: {
     transactioncode: '2306',
