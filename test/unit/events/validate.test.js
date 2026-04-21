@@ -52,7 +52,7 @@ describe('validateEvent', () => {
     const event = {
       ...testEvent,
       audit: null,
-      security: { pmcode: '1234' }
+      security: { pmccode: '1234' }
     }
     mockSchemaValidate.mockReturnValue({ error: null, value: { ...event } })
 
@@ -65,7 +65,7 @@ describe('validateEvent', () => {
   test('should not remove non-null security property', async () => {
     const event = {
       ...testEvent,
-      security: { pmcode: '1234', priority: 1 },
+      security: { pmccode: '1234', priority: 1 },
       audit: { eventtype: 'test' }
     }
     mockSchemaValidate.mockReturnValue({ error: null, value: { ...event } })
@@ -73,14 +73,14 @@ describe('validateEvent', () => {
     await validateEvent(event)
 
     expect(event.security).toBeDefined()
-    expect(event.security.pmcode).toBe('1234')
+    expect(event.security.pmccode).toBe('1234')
   })
 
   test('should not remove non-null audit property', async () => {
     const event = {
       ...testEvent,
       audit: { eventtype: 'test' },
-      security: { pmcode: '1234' }
+      security: { pmccode: '1234' }
     }
     mockSchemaValidate.mockReturnValue({ error: null, value: { ...event } })
 
@@ -93,7 +93,7 @@ describe('validateEvent', () => {
   test('should handle event with both security and audit as non-null', async () => {
     const event = {
       ...testEvent,
-      security: { pmcode: '1234', priority: 1 },
+      security: { pmccode: '1234', priority: 1 },
       audit: { eventtype: 'test' }
     }
     mockSchemaValidate.mockReturnValue({ error: null, value: { ...event } })

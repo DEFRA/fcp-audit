@@ -90,7 +90,7 @@ const randomIp = () =>
 
 const randomSbi = () => String(randomInt(100000000, 999999999))
 
-const randomPmcode = () => String(randomInt(1000, 9999))
+const randomPmccode = () => String(randomInt(1000, 9999))
 
 const buildAuditDetails = () => {
   if (Math.random() > 0.5) {
@@ -140,7 +140,7 @@ const buildAuditObject = (rand) => {
 const buildSecurityObject = (rand) => {
   if (!rand) {
     return {
-      pmcode: '0201',
+      pmccode: '0201',
       priority: 0,
       details: {
         message: 'Test security event'
@@ -149,7 +149,7 @@ const buildSecurityObject = (rand) => {
   }
 
   return {
-    pmcode: randomPmcode(),
+    pmccode: randomPmccode(),
     priority: randomInt(0, 9),
     details: {
       message: randomItem(SOC_MESSAGES)
@@ -251,7 +251,7 @@ for (let i = 0; i < eventCount; i++) {
       console.log(`    audit entities: ${entities}`)
     }
     if (event.security) {
-      console.log(`    security pmcode: ${event.security.pmcode} priority: ${event.security.priority}`)
+      console.log(`    security pmccode: ${event.security.pmccode} priority: ${event.security.priority}`)
     }
   } catch (error) {
     console.error(`✗ [${i + 1}/${eventCount}] Failed: ${error.message}`)

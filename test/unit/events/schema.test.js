@@ -272,43 +272,43 @@ describe('audit event schema', () => {
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with undefined security.pmcode', () => {
-    event.security.pmcode = undefined
+  test('should not validate an event with undefined security.pmccode', () => {
+    event.security.pmccode = undefined
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with null security.pmcode', () => {
-    event.security.pmcode = null
+  test('should not validate an event with null security.pmccode', () => {
+    event.security.pmccode = null
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with missing security.pmcode', () => {
-    delete event.security.pmcode
+  test('should not validate an event with missing security.pmccode', () => {
+    delete event.security.pmccode
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with empty security.pmcode', () => {
-    event.security.pmcode = ''
+  test('should not validate an event with empty security.pmccode', () => {
+    event.security.pmccode = ''
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should not validate an event with security.pmcode exceeding 4 characters', () => {
-    event.security.pmcode = 'A'.repeat(5)
+  test('should not validate an event with security.pmccode exceeding 4 characters', () => {
+    event.security.pmccode = 'A'.repeat(5)
     expect(schema.validate(event).error).toBeDefined()
   })
 
-  test('should strip dashes from security.pmcode', () => {
-    event.security.pmcode = '12-34'
+  test('should strip dashes from security.pmccode', () => {
+    event.security.pmccode = '12-34'
     const result = schema.validate(event)
     expect(result.error).toBeUndefined()
-    expect(result.value.security.pmcode).toBe('1234')
+    expect(result.value.security.pmccode).toBe('1234')
   })
 
-  test('should strip multiple dashes from security.pmcode', () => {
-    event.security.pmcode = '1-2-3-4'
+  test('should strip multiple dashes from security.pmccode', () => {
+    event.security.pmccode = '1-2-3-4'
     const result = schema.validate(event)
     expect(result.error).toBeUndefined()
-    expect(result.value.security.pmcode).toBe('1234')
+    expect(result.value.security.pmccode).toBe('1234')
   })
 
   test('should validate an event with undefined security.priority and default to 0', () => {
