@@ -33,11 +33,21 @@ const APP_COMPONENTS = [
   },
   {
     application: 'Data Access Layer',
-    components: ['fcp-dal-api']
+    components: [
+      'fcp-dal-api'
+    ]
   },
   {
     application: 'Grants Platform',
-    components: ['grants-ui', 'land-grants', 'gas-enablement']
+    components: [
+      'grants-ui',
+      'farming-grants-agreements-ui',
+      'farming-grants-agreements-pdf',
+      'fg-cw-backend',
+      'fg-cw-frontend',
+      'fg-gas-backend',
+      'fg-gas-frontend'
+    ]
   }
 ]
 
