@@ -64,7 +64,7 @@ export function getDownloadStream (conditions = []) {
   let headers = null
 
   const transform = new Transform({
-    objectMode: true,
+    writableObjectMode: true,
     transform (doc, _encoding, callback) {
       try {
         const flat = flattenObject(doc)
