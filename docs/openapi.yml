@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: FCP Audit service - REST API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     The Audit service REST API provides access to aggregated farming and 
     countryside programme data collected from various FCP services.
@@ -320,6 +320,71 @@ paths:
                       page: 1
                       pageSize: 20
                       total: 0
+        '401':
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Valid token but insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/audit/download:
+    get:
+      tags:
+        - Audit
+      summary: Download all matching audit events as CSV
+      description: |
+        Streams all audit events matching the given search conditions as a CSV file.
+        All event properties are included, with nested properties using dot notation
+        (e.g. `audit.status`) and array elements using the index
+        (e.g. `audit.entities.0.entity`). All matching events are returned regardless
+        of pagination — no `page` or `pageSize` parameters are accepted.
+
+        **Authentication Required**: This endpoint requires a valid JWT Bearer token from Microsoft Entra ID
+        with appropriate security group membership.
+      operationId: downloadAuditEvents
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Authorization
+          in: header
+          description: Bearer token for authentication
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik..."
+          style: simple
+        - name: conditions
+          in: query
+          description: Array of search conditions to filter the downloaded events
+          required: false
+          style: deepObject
+          explode: true
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              $ref: '#/components/schemas/SearchCondition'
+      responses:
+        '200':
+          description: CSV stream of all matching audit events
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="audit-events.csv"'
+          content:
+            text/csv:
+              schema:
+                type: string
+              example: |
+                user,sessionid,datetime,environment,version,application,component,ip,audit.entities.0.entity,audit.entities.0.action,audit.entities.0.entityid,audit.status
+                IDM/8b7c6b0a,e66d78f5,2025-12-01T12:51:41.381Z,prod,1.2,FCP001,fcp-audit,192.168.1.100,application,created,APP-79389915,success
         '401':
           description: Unauthorized - Invalid or missing JWT token
           content:

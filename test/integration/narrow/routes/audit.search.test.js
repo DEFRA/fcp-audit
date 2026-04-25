@@ -1,7 +1,7 @@
 import { constants as httpConstants } from 'node:http2'
 import { describe, test, beforeEach, afterEach, vi, expect } from 'vitest'
 
-const { HTTP_STATUS_OK } = httpConstants
+const { HTTP_STATUS_OK, HTTP_STATUS_BAD_REQUEST } = httpConstants
 
 vi.mock('../../../../src/events/polling.js', () => ({
   startPolling: vi.fn(),
@@ -104,7 +104,7 @@ describe('GET /api/v1/audit/search', () => {
     const url = '/api/v1/audit/search?conditions[0][field]=_id&conditions[0][operator]=eq&conditions[0][value]=anything'
     const response = await server.inject({ method: 'GET', url })
 
-    expect(response.statusCode).toBe(400)
+    expect(response.statusCode).toBe(HTTP_STATUS_BAD_REQUEST)
   })
 
   test('with valid custom details field returns 200', async () => {
@@ -118,13 +118,13 @@ describe('GET /api/v1/audit/search', () => {
     const url = '/api/v1/audit/search?conditions[0][field]=application&conditions[0][operator]=eq&conditions[0][value]='
     const response = await server.inject({ method: 'GET', url })
 
-    expect(response.statusCode).toBe(400)
+    expect(response.statusCode).toBe(HTTP_STATUS_BAD_REQUEST)
   })
 
   test('with duplicate entity sub-field returns 400', async () => {
     const url = '/api/v1/audit/search?conditions[0][field]=audit.entities.entity&conditions[0][operator]=eq&conditions[0][value]=application&conditions[1][field]=audit.entities.entity&conditions[1][operator]=eq&conditions[1][value]=payment'
     const response = await server.inject({ method: 'GET', url })
 
-    expect(response.statusCode).toBe(400)
+    expect(response.statusCode).toBe(HTTP_STATUS_BAD_REQUEST)
   })
 })
