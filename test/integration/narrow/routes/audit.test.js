@@ -1,7 +1,7 @@
 import { constants as httpConstants } from 'node:http2'
 import { describe, test, beforeEach, afterEach, vi, expect } from 'vitest'
 
-const { HTTP_STATUS_OK } = httpConstants
+const { HTTP_STATUS_OK, HTTP_STATUS_INTERNAL_SERVER_ERROR, HTTP_STATUS_GATEWAY_TIMEOUT } = httpConstants
 
 vi.mock('../../../../src/events/polling.js', () => ({
   startPolling: vi.fn(),
@@ -104,7 +104,7 @@ describe('GET /api/v1/audit', () => {
     const response = await server.inject(options)
 
     expect(mockGetEvents).toHaveBeenCalledWith({ page: 1, pageSize: 20 })
-    expect(response.statusCode).toBe(504)
+    expect(response.statusCode).toBe(HTTP_STATUS_GATEWAY_TIMEOUT)
     expect(JSON.parse(response.payload).message).toBe('Operation timed out')
   })
 
@@ -118,7 +118,7 @@ describe('GET /api/v1/audit', () => {
     const response = await server.inject(options)
 
     expect(mockGetEvents).toHaveBeenCalledWith({ page: 1, pageSize: 20 })
-    expect(response.statusCode).toBe(500)
+    expect(response.statusCode).toBe(HTTP_STATUS_INTERNAL_SERVER_ERROR)
     expect(JSON.parse(response.payload).message).toBe('An internal server error occurred')
   })
 })
