@@ -36,7 +36,9 @@ function csvEscape (value) {
 }
 
 class CsvTransform extends Transform {
-  #headers = null
+  #headers = []
+  #seen = new Set()
+  #docs = []
 
   constructor () {
     super({ writableObjectMode: true })
@@ -46,12 +48,33 @@ class CsvTransform extends Transform {
     try {
       const flat = flattenObject(doc)
 
-      if (this.#headers === null) {
-        this.#headers = Object.keys(flat)
-        this.push(this.#headers.join(',') + '\n')
+      for (const key of Object.keys(flat)) {
+        if (!this.#seen.has(key)) {
+          this.#seen.add(key)
+          this.#headers.push(key)
+        }
       }
 
-      this.push(this.#headers.map((h) => csvEscape(flat[h])).join(',') + '\n')
+      this.#docs.push(flat)
+      callback()
+    } catch (err) {
+      callback(err)
+    }
+  }
+
+  _flush (callback) {
+    try {
+      if (this.#docs.length === 0) {
+        callback()
+        return
+      }
+
+      this.push(this.#headers.join(',') + '\n')
+
+      for (const flat of this.#docs) {
+        this.push(this.#headers.map((h) => csvEscape(flat[h])).join(',') + '\n')
+      }
+
       callback()
     } catch (err) {
       callback(err)
