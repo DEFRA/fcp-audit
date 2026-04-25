@@ -111,6 +111,8 @@ function buildConditionsQuery (conditions) {
   return query
 }
 
+export { buildConditionsQuery }
+
 export async function searchEvents ({ conditions = [], page, pageSize }) {
   const { collections } = getMongoDb()
   const { audit: auditCollection } = collections

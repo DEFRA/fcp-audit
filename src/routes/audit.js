@@ -3,6 +3,7 @@ import { getPageLinks } from '../common/helpers/pagination.js'
 import { getEvents } from '../events/get.js'
 import { getSummary } from '../events/summary.js'
 import { searchEvents, ALLOWED_FIELDS, CUSTOM_FIELD_PATTERN } from '../events/search.js'
+import { getDownloadStream } from '../events/download.js'
 
 const api = [
   {
@@ -89,6 +90,37 @@ const api = [
         links: getPageLinks(request, page, pageSize),
         meta: { page, pageSize, total }
       })
+    }
+  },
+  {
+    method: 'GET',
+    path: '/audit/download',
+    options: {
+      description: 'Download all matching audit events as CSV',
+      tags: ['api', 'audit'],
+      validate: {
+        query: {
+          conditions: Joi.array().items(
+            Joi.object({
+              field: Joi.string().max(120).custom((value, helpers) => {
+                if (!ALLOWED_FIELDS.has(value) && !CUSTOM_FIELD_PATTERN.test(value)) {
+                  return helpers.error('any.invalid')
+                }
+                return value
+              }).required(),
+              operator: Joi.string().valid('eq', 'ne', 'lt', 'gt', 'contains', 'notContains').required(),
+              value: Joi.string().min(1).max(500).required()
+            })
+          ).max(20).optional()
+        }
+      }
+    },
+    handler: (request, h) => {
+      const { conditions = [] } = request.query
+      const stream = getDownloadStream(conditions)
+      return h.response(stream)
+        .type('text/csv')
+        .header('Content-Disposition', 'attachment; filename="audit-events.csv"')
     }
   }
 ]
