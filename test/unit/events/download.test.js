@@ -85,7 +85,7 @@ describe('getDownloadStream', () => {
     expect(typeof result.on).toBe('function')
   })
 
-  test('emits CSV header row from first document keys using dot notation', async () => {
+  test('emits CSV header row from union of all document keys using dot notation', async () => {
     const docs = [
       {
         application: 'FCP001',
@@ -210,5 +210,21 @@ describe('getDownloadStream', () => {
     const csv = await streamToString(result)
 
     expect(csv).toBe('')
+  })
+
+  test('includes keys from later documents in header and emits empty string for earlier docs missing those keys', async () => {
+    const docs = [
+      { application: 'FCP001', component: 'fcp-audit' },
+      { application: 'FCP002', component: 'fcp-audit', audit: { status: 'success' } }
+    ]
+    mockFind.mockReturnValue({ stream: () => makeObjectReadable(docs) })
+
+    const result = getDownloadStream([])
+    const csv = await streamToString(result)
+    const lines = csv.trim().split('\n')
+
+    expect(lines[0]).toBe('application,component,audit.status')
+    expect(lines[1]).toBe('FCP001,fcp-audit,')
+    expect(lines[2]).toBe('FCP002,fcp-audit,success')
   })
 })
