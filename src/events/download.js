@@ -11,17 +11,8 @@ function flattenObject (obj, prefix = '') {
   for (const [key, value] of Object.entries(obj)) {
     const fullKey = prefix ? `${prefix}.${key}` : key
 
-    if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+    if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
       Object.assign(result, flattenObject(value, fullKey))
-    } else if (Array.isArray(value)) {
-      for (let i = 0; i < value.length; i++) {
-        const indexedKey = `${fullKey}.${i}`
-        if (value[i] !== null && typeof value[i] === 'object' && !(value[i] instanceof Date)) {
-          Object.assign(result, flattenObject(value[i], indexedKey))
-        } else {
-          result[indexedKey] = value[i]
-        }
-      }
     } else {
       result[fullKey] = value
     }
@@ -37,15 +28,35 @@ function csvEscape (value) {
 
   const str = value instanceof Date ? value.toISOString() : String(value)
 
-  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+  if (/[,"\n\r]/.test(str)) {
     return `"${str.replaceAll('"', '""')}"`
   }
 
   return str
 }
 
-function toCsvRow (headers, flatDoc) {
-  return headers.map((h) => csvEscape(flatDoc[h])).join(',')
+class CsvTransform extends Transform {
+  #headers = null
+
+  constructor () {
+    super({ writableObjectMode: true })
+  }
+
+  _transform (doc, _encoding, callback) {
+    try {
+      const flat = flattenObject(doc)
+
+      if (this.#headers === null) {
+        this.#headers = Object.keys(flat)
+        this.push(this.#headers.join(',') + '\n')
+      }
+
+      this.push(this.#headers.map((h) => csvEscape(flat[h])).join(',') + '\n')
+      callback()
+    } catch (err) {
+      callback(err)
+    }
+  }
 }
 
 export function getDownloadStream (conditions = []) {
@@ -61,28 +72,8 @@ export function getDownloadStream (conditions = []) {
     maxTimeMS
   })
 
-  let headers = null
-
-  const transform = new Transform({
-    writableObjectMode: true,
-    transform (doc, _encoding, callback) {
-      try {
-        const flat = flattenObject(doc)
-
-        if (headers === null) {
-          headers = Object.keys(flat)
-          this.push(headers.join(',') + '\n')
-        }
-
-        this.push(toCsvRow(headers, flat) + '\n')
-        callback()
-      } catch (err) {
-        callback(err)
-      }
-    }
-  })
-
-  cursor.stream().pipe(transform)
+  const transform = new CsvTransform()
+  cursor.stream().on('error', (err) => transform.destroy(err)).pipe(transform)
 
   return transform
 }
