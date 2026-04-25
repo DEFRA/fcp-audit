@@ -5,6 +5,22 @@ import { getSummary } from '../events/summary.js'
 import { searchEvents, ALLOWED_FIELDS, CUSTOM_FIELD_PATTERN } from '../events/search.js'
 import { getDownloadStream } from '../events/download.js'
 
+const paginationSchema = {
+  page: Joi.number().integer().min(1).default(1).description('The page number for pagination'),
+  pageSize: Joi.number().integer().min(1).max(100).default(20).description('The number of items per page for pagination')
+}
+
+const conditionItemSchema = Joi.object({
+  field: Joi.string().max(120).custom((value, helpers) => {
+    if (!ALLOWED_FIELDS.has(value) && !CUSTOM_FIELD_PATTERN.test(value)) {
+      return helpers.error('any.invalid')
+    }
+    return value
+  }).required(),
+  operator: Joi.string().valid('eq', 'ne', 'lt', 'gt', 'contains', 'notContains').required(),
+  value: Joi.string().min(1).max(500).required()
+})
+
 const api = [
   {
     method: 'GET',
@@ -14,8 +30,7 @@ const api = [
       tags: ['api', 'audit'],
       validate: {
         query: {
-          page: Joi.number().integer().min(1).default(1).description('The page number for pagination'),
-          pageSize: Joi.number().integer().min(1).max(100).default(20).description('The number of items per page for pagination')
+          ...paginationSchema
         }
       }
     },
@@ -55,16 +70,7 @@ const api = [
       validate: {
         query: {
           conditions: Joi.array().items(
-            Joi.object({
-              field: Joi.string().max(120).custom((value, helpers) => {
-                if (!ALLOWED_FIELDS.has(value) && !CUSTOM_FIELD_PATTERN.test(value)) {
-                  return helpers.error('any.invalid')
-                }
-                return value
-              }).required(),
-              operator: Joi.string().valid('eq', 'ne', 'lt', 'gt', 'contains', 'notContains').required(),
-              value: Joi.string().min(1).max(500).required()
-            })
+            conditionItemSchema
           ).max(20).custom((conditions, helpers) => {
             const entitySubFields = ['audit.entities.entity', 'audit.entities.action', 'audit.entities.entityid']
             for (const subField of entitySubFields) {
@@ -75,8 +81,7 @@ const api = [
             }
             return conditions
           }).optional(),
-          page: Joi.number().integer().min(1).default(1),
-          pageSize: Joi.number().integer().min(1).max(100).default(20)
+          ...paginationSchema
         }
       }
     },
@@ -101,16 +106,7 @@ const api = [
       validate: {
         query: {
           conditions: Joi.array().items(
-            Joi.object({
-              field: Joi.string().max(120).custom((value, helpers) => {
-                if (!ALLOWED_FIELDS.has(value) && !CUSTOM_FIELD_PATTERN.test(value)) {
-                  return helpers.error('any.invalid')
-                }
-                return value
-              }).required(),
-              operator: Joi.string().valid('eq', 'ne', 'lt', 'gt', 'contains', 'notContains').required(),
-              value: Joi.string().min(1).max(500).required()
-            })
+            conditionItemSchema
           ).max(20).optional()
         }
       }
