@@ -45,7 +45,7 @@ const schema = Joi.object({
   }
   return value
 }).messages({
-  'object.missingAuditOrSecurity': 'at least one of "audit" or "security" must be provided and not null'
+  'object.missingAuditOrSecurity': 'at least one of "audit" or "security" must be provided'
 })
 
 export default schema
