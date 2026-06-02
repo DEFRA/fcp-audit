@@ -168,7 +168,10 @@ describe('consumeEvents', () => {
     const result = await consumeEvents()
     expect(result).toBe(true)
     expect(mockProcessEvent).toHaveBeenCalledTimes(2)
-    expect(mockLogError).toHaveBeenCalledWith(processError, 'Unable to process event')
+    expect(mockLogError).toHaveBeenCalledWith(
+      { err: processError, event: { reference: 'id-1' } },
+      'Unable to process event'
+    )
     expect(mockSqsClient.send).toHaveBeenCalledTimes(2) // One receive, one delete
     expect(mockSqsClient.send.mock.calls[1][0].params).toEqual({
       QueueUrl: 'http://localhost:4566/000000000000/test-queue',
@@ -186,6 +189,9 @@ describe('consumeEvents', () => {
     const result = await consumeEvents()
     expect(result).toBe(true)
     expect(mockSqsClient.send).toHaveBeenCalledTimes(1) // One receive, no batch delete
-    expect(mockLogError).toHaveBeenCalledWith(processError, 'Unable to process event')
+    expect(mockLogError).toHaveBeenCalledWith(
+      { err: processError, event: { reference: 'id-1' } },
+      'Unable to process event'
+    )
   })
 })
