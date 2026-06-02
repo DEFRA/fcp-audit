@@ -32,7 +32,7 @@ export async function consumeEvents () {
         await processEvent(event)
         processedEvents.push({ Id: event.MessageId, ReceiptHandle: event.ReceiptHandle })
       } catch (err) {
-        logger.error(err, 'Unable to process event')
+        logger.error({ err, event: { reference: event.MessageId } }, 'Unable to process event')
       }
     }
 

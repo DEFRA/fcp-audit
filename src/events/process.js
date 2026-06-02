@@ -8,6 +8,7 @@ import { sentToSoc } from './soc.js'
 const logger = createLogger()
 
 export async function processEvent (rawEvent) {
+  const { MessageId } = rawEvent
   const event = parseEvent(rawEvent)
   await validateEvent(event)
   const { auditEvent, socEvent } = transformEvent(event)
@@ -20,5 +21,5 @@ export async function processEvent (rawEvent) {
     sentToSoc(socEvent)
   }
 
-  logger.info('Event processed successfully')
+  logger.info({ event: { reference: MessageId } }, 'Event processed successfully')
 }

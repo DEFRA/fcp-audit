@@ -43,6 +43,7 @@ const testEvent = {
 }
 
 const testRawEvent = {
+  MessageId: 'test-message-id',
   Body: JSON.stringify({
     Message: JSON.stringify(testEvent)
   })
@@ -93,6 +94,15 @@ describe('processEvent', () => {
     await processEvent(testRawEvent)
 
     expect(mockSentToSoc).toHaveBeenCalledWith(socEvent)
+  })
+
+  test('should log success with SQS message id', async () => {
+    await processEvent(testRawEvent)
+
+    expect(mockLoggerInfo).toHaveBeenCalledWith(
+      { event: { reference: 'test-message-id' } },
+      'Event processed successfully'
+    )
   })
 
   test('should abandon processing if parsing fails', async () => {
