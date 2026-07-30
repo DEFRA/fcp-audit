@@ -28,11 +28,8 @@ export async function consumeEvents () {
     const processedEvents = []
 
     for (const event of Messages) {
-      try {
-        await processEvent(event)
+      if(await processEvent(event)){
         processedEvents.push({ Id: event.MessageId, ReceiptHandle: event.ReceiptHandle })
-      } catch (err) {
-        logger.error({ err, event: { reference: event.MessageId } }, 'Unable to process event')
       }
     }
 

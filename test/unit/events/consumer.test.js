@@ -76,6 +76,7 @@ describe('consumeEvents', () => {
     const testMessages = [
       { MessageId: 'id-1', ReceiptHandle: 'receipt-1', Body: 'message-1' }
     ]
+    mockProcessEvent.mockResolvedValue(true)
     mockSqsClient.send
       .mockResolvedValueOnce({ Messages: testMessages }) // ReceiveMessageCommand
       .mockResolvedValueOnce({}) // DeleteMessageBatchCommand
@@ -96,6 +97,7 @@ describe('consumeEvents', () => {
 
   test('should batch delete message from SQS after successful processing', async () => {
     const testMessage = { MessageId: 'id-1', ReceiptHandle: 'receipt-1', Body: 'message-1' }
+    mockProcessEvent.mockResolvedValue(true)
     mockSqsClient.send
       .mockResolvedValueOnce({ Messages: [testMessage] }) // ReceiveMessageCommand
       .mockResolvedValueOnce({}) // DeleteMessageBatchCommand
@@ -117,6 +119,7 @@ describe('consumeEvents', () => {
       { MessageId: 'id-1', ReceiptHandle: 'receipt-1', Body: 'message-1' },
       { MessageId: 'id-2', ReceiptHandle: 'receipt-2', Body: 'message-2' }
     ]
+    mockProcessEvent.mockResolvedValue(true)
     mockSqsClient.send
       .mockResolvedValueOnce({ Messages: testMessages }) // ReceiveMessageCommand
       .mockResolvedValueOnce({}) // DeleteMessageBatchCommand after first event
@@ -155,23 +158,20 @@ describe('consumeEvents', () => {
     })
   })
 
-  test('should log error and continue processing other events when processing fails', async () => {
+  test('should continue processing other events when processing fails', async () => {
     const testMessages = [
       { MessageId: 'id-1', ReceiptHandle: 'receipt-1', Body: 'message-1' },
       { MessageId: 'id-2', ReceiptHandle: 'receipt-2', Body: 'message-2' }
     ]
-    const processError = new Error('Processing failed')
+
     mockSqsClient.send.mockResolvedValueOnce({ Messages: testMessages })
     mockProcessEvent
-      .mockRejectedValueOnce(processError) // First message fails
-      .mockResolvedValueOnce() // Second message succeeds
+      .mockResolvedValueOnce(false) // First message fails
+      .mockResolvedValueOnce(true) // Second message succeeds
     const result = await consumeEvents()
     expect(result).toBe(true)
     expect(mockProcessEvent).toHaveBeenCalledTimes(2)
-    expect(mockLogError).toHaveBeenCalledWith(
-      { err: processError, event: { reference: 'id-1' } },
-      'Unable to process event'
-    )
+
     expect(mockSqsClient.send).toHaveBeenCalledTimes(2) // One receive, one delete
     expect(mockSqsClient.send.mock.calls[1][0].params).toEqual({
       QueueUrl: 'http://localhost:4566/000000000000/test-queue',
@@ -183,15 +183,10 @@ describe('consumeEvents', () => {
 
   test('should not delete message when processing fails', async () => {
     const testMessage = { MessageId: 'id-1', ReceiptHandle: 'receipt-1', Body: 'message-1' }
-    const processError = new Error('Processing failed')
     mockSqsClient.send.mockResolvedValueOnce({ Messages: [testMessage] })
-    mockProcessEvent.mockRejectedValueOnce(processError)
+    mockProcessEvent.mockResolvedValueOnce(false)
     const result = await consumeEvents()
     expect(result).toBe(true)
     expect(mockSqsClient.send).toHaveBeenCalledTimes(1) // One receive, no batch delete
-    expect(mockLogError).toHaveBeenCalledWith(
-      { err: processError, event: { reference: 'id-1' } },
-      'Unable to process event'
-    )
   })
 })
