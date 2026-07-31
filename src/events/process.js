@@ -7,19 +7,51 @@ import { sentToSoc } from './soc.js'
 
 const logger = createLogger()
 
-export async function processEvent (rawEvent) {
+function eventToLogContext(messageId, event) {
+  return {
+    event: {
+      reference: messageId,
+      ...(event.datetime ? { created: event.datetime } : {}),
+      ...(event.environment ? { category: event.environment } : {})
+    },
+    ...(event.correlationid
+      ? { labels: { CorrelationId: event.correlationid } }
+      : {}),
+    ...(event.application || event.component
+      ? {
+          tenant: {
+            ...(event.application ? { id: event.application } : {}),
+            ...(event.component ? { message: event.component } : {})
+          }
+        }
+      : {})
+  }
+}
+
+export async function processEvent(rawEvent) {
   const { MessageId } = rawEvent
-  const event = parseEvent(rawEvent)
-  await validateEvent(event)
-  const { auditEvent, socEvent } = transformEvent(event)
 
-  if (auditEvent) {
-    await saveEvent(auditEvent)
+  const childLogger = logger.child({ event: { reference: MessageId } })
+  try {
+    const event = parseEvent(rawEvent)
+
+    childLogger.setBindings(eventToLogContext(MessageId, event))
+
+    await validateEvent(event)
+    const { auditEvent, socEvent } = transformEvent(event)
+
+    if (auditEvent) {
+      await saveEvent(auditEvent)
+    }
+
+    if (socEvent) {
+      sentToSoc(socEvent)
+    }
+
+    childLogger.info({}, 'Event processed successfully')
+    return true
+  } catch (err) {
+    childLogger.error({ err }, 'Unable to process event')
+    return false
   }
-
-  if (socEvent) {
-    sentToSoc(socEvent)
-  }
-
-  logger.info({ event: { reference: MessageId } }, 'Event processed successfully')
 }

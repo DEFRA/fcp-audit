@@ -1,9 +1,25 @@
 import { vi, describe, beforeEach, test, expect } from 'vitest'
+import { Writable } from 'node:stream'
+import { pino } from 'pino'
 
-const mockLoggerInfo = vi.fn()
+/* 
+Using an actual pino instance for these tests so it is possible to check the context added to log messages,
+rather then just the context passed in at the time the message was logged.
+*/
+const logs = []
+
+const stream = new Writable({
+  write(chunk, encoding, callback) {
+    // Pino logs JSON strings ending with newline
+    logs.push(JSON.parse(chunk.toString()))
+    callback()
+  }
+})
+
+const logger = pino({ level: 'trace' }, stream)
 
 vi.mock('../../../src/common/helpers/logging/logger.js', () => ({
-  createLogger: () => ({ info: (...args) => mockLoggerInfo(...args) })
+  createLogger: () => logger
 }))
 
 const mockParseEvent = vi.fn()
@@ -49,11 +65,24 @@ const testRawEvent = {
   })
 }
 
+const createRawTestEvent = (message) => {
+  return {
+    MessageId: 'test-message-id',
+    Body: JSON.stringify({
+      Message: JSON.stringify(message)
+    })
+  }
+}
+
 describe('processEvent', () => {
   beforeEach(() => {
+    logs.length = 0
     vi.clearAllMocks()
     mockParseEvent.mockReturnValue(testEvent)
-    mockTransformEvent.mockReturnValue({ auditEvent: testEvent, socEvent: testEvent })
+    mockTransformEvent.mockReturnValue({
+      auditEvent: testEvent,
+      socEvent: testEvent
+    })
   })
 
   test('should parse raw event into JSON', async () => {
@@ -99,9 +128,12 @@ describe('processEvent', () => {
   test('should log success with SQS message id', async () => {
     await processEvent(testRawEvent)
 
-    expect(mockLoggerInfo).toHaveBeenCalledWith(
-      { event: { reference: 'test-message-id' } },
-      'Event processed successfully'
+    expect(logs[0]).toEqual(
+      expect.objectContaining({
+        level: 30, // an info message
+        event: { reference: 'test-message-id' },
+        msg: 'Event processed successfully'
+      })
     )
   })
 
@@ -112,48 +144,170 @@ describe('processEvent', () => {
       throw parseError
     })
 
-    await expect(processEvent(testRawEvent)).rejects.toThrow(parseError)
+    const result = await processEvent(testRawEvent)
+    await expect(result).toEqual(false)
 
     expect(mockValidateEvent).not.toHaveBeenCalled()
     expect(mockSaveEvent).not.toHaveBeenCalled()
+    expect(logs[0]).toEqual(
+      expect.objectContaining({
+        level: 50, // an error message
+        err: expect.objectContaining({
+          message: parseError.message
+        }),
+        msg: 'Unable to process event'
+      })
+    )
   })
 
-  test('should abandon processing if validation fails', async () => {
+  test('should log an error and return false if validation fails', async () => {
     const validationError = new Error('Test validation error')
 
     mockValidateEvent.mockImplementationOnce(() => {
       throw validationError
     })
 
-    await expect(processEvent(testRawEvent)).rejects.toThrow(validationError)
+    const result = await processEvent(testRawEvent)
+    await expect(result).toEqual(false)
 
     expect(mockTransformEvent).not.toHaveBeenCalled()
     expect(mockSaveEvent).not.toHaveBeenCalled()
     expect(mockSentToSoc).not.toHaveBeenCalled()
+    expect(logs[0]).toEqual(
+      expect.objectContaining({
+        level: 50, // an error message
+        err: expect.objectContaining({
+          message: validationError.message
+        }),
+        msg: 'Unable to process event'
+      })
+    )
   })
 
-  test('should abandon processing if transform fails', async () => {
+  test('should log an error and return false if transform fails', async () => {
     const transformError = new Error('Test transform error')
 
     mockTransformEvent.mockImplementationOnce(() => {
       throw transformError
     })
 
-    await expect(processEvent(testRawEvent)).rejects.toThrow(transformError)
+    const result = await processEvent(testRawEvent)
+    await expect(result).toEqual(false)
 
     expect(mockSaveEvent).not.toHaveBeenCalled()
     expect(mockSentToSoc).not.toHaveBeenCalled()
+    expect(logs[0]).toEqual(
+      expect.objectContaining({
+        level: 50, // an error message
+        err: expect.objectContaining({
+          message: transformError.message
+        }),
+        msg: 'Unable to process event'
+      })
+    )
   })
 
-  test('should abandon processing if save fails', async () => {
+  test('should log an error and return false if save fails', async () => {
     const saveError = new Error('Test save error')
 
     mockSaveEvent.mockImplementationOnce(() => {
       throw saveError
     })
-
-    await expect(processEvent(testRawEvent)).rejects.toThrow(saveError)
+    const result = await processEvent(testRawEvent)
+    await expect(result).toEqual(false)
 
     expect(mockSentToSoc).not.toHaveBeenCalled()
+    expect(logs).toHaveLength(1)
+    expect(logs[0]).toEqual(
+      expect.objectContaining({
+        level: 50, // an error message
+        err: expect.objectContaining({
+          message: saveError.message
+        }),
+        msg: 'Unable to process event'
+      })
+    )
   })
+
+  test.each([
+    {
+      parsedEventFieldLabel: 'environment',
+      parsedEventField: {
+        environment: 'local'
+      },
+      expectedLogFieldLabel: 'event/category',
+      expectedLogFields: {
+        event: { reference: 'test-message-id', category: 'local' }
+      }
+    },
+    {
+      parsedEventFieldLabel: 'component',
+      parsedEventField: {
+        component: 'fcp-sfd-frontend'
+      },
+      expectedLogFieldLabel: 'tenant/message',
+      expectedLogFields: {
+        tenant: {
+          message: 'fcp-sfd-frontend'
+        }
+      }
+    },
+    {
+      parsedEventFieldLabel: 'application',
+      parsedEventField: {
+        application: 'Single Front Door'
+      },
+      expectedLogFieldLabel: 'tenant/id',
+      expectedLogFields: {
+        tenant: {
+          id: 'Single Front Door'
+        }
+      }
+    },
+    {
+      parsedEventFieldLabel: 'datetime',
+      parsedEventField: {
+        datetime: '2026-07-29T11:01:00Z'
+      },
+      expectedLogFieldLabel: 'event/created',
+      expectedLogFields: {
+        event: {
+          created: '2026-07-29T11:01:00Z',
+          reference: 'test-message-id'
+        }
+      }
+    },
+    {
+      parsedEventFieldLabel: 'correlationid',
+      parsedEventField: {
+        correlationid: 124
+      },
+      expectedLogFieldLabel: 'labels/CorrelationId',
+      expectedLogFields: {
+        labels: {
+          CorrelationId: 124
+        }
+      }
+    }
+  ])(
+    'should log an error with $expectedLogFieldLabel when the invalid event has $parsedEventFieldLabel',
+    async ({ parsedEventField, expectedLogFields }) => {
+      const saveError = new Error('Test save error')
+      mockSaveEvent.mockImplementationOnce(() => {
+        throw saveError
+      })
+      const parsedEvent = { ...testEvent, ...parsedEventField }
+      mockParseEvent.mockReturnValue(parsedEvent)
+      const result = await processEvent(createRawTestEvent(parsedEvent))
+      await expect(result).toEqual(false)
+
+      expect(mockSentToSoc).not.toHaveBeenCalled()
+      expect(logs).toHaveLength(1)
+      expect(logs[0]).toEqual(
+        expect.objectContaining({
+          ...expectedLogFields
+        })
+      )
+    }
+  )
 })

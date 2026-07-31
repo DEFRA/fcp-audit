@@ -285,6 +285,18 @@ node scripts/send-test-event.js --audit --events 50
 - Events with a `security` object are forwarded to SOC but **not** persisted in MongoDB. Only events containing an `audit` object are stored.
 - When using `--rand`, the script randomly selects from all three valid applications (`Single Front Door`, `Data Access Layer`, `Grants Platform`) and their corresponding components.
 
+## CDP
+
+The Core Delivery Platforms' (CDP) streamlined Elastic Common Schema (ECS) enforces a paired down set of keys when searching in OpenSearch (see https://portal.cdp-int.defra.cloud/documentation/how-to/logging.md). These keys don't provide a perfect mapping to the keys we log. The table below shows which event fields map to which ECS key.
+
+| Event field   | ECS key       |
+| ------------- | ------------- |
+| correlationid | trace.id      |
+| datetime      | event/created |
+| environment   | event/category|
+| application   | tenant/id     |
+| component     | tenant/message|
+
 ## Licence
 
 THIS INFORMATION IS LICENSED UNDER THE CONDITIONS OF THE OPEN GOVERNMENT LICENCE found at:
