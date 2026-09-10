@@ -55,7 +55,8 @@ function buildRequest ({
   principalId = 'user-123',
   response = { statusCode: 200, isBoom: false },
   query = {},
-  remoteAddress = '127.0.0.1'
+  remoteAddress = '127.0.0.1',
+  headers = {}
 } = {}) {
   return {
     route: { path, settings: { plugins: { apiAudit } } },
@@ -63,6 +64,7 @@ function buildRequest ({
     method: 'get',
     auth: { credentials: { principalId } },
     info: { remoteAddress },
+    headers,
     response,
     query
   }
@@ -133,6 +135,33 @@ describe('api-audit plugin', () => {
         generateCorrelationId: true
       })
     )
+  })
+
+  test('should use the client IP from x-forwarded-for when present, ignoring the proxy remoteAddress', async () => {
+    mockPublishAuditEvent.mockResolvedValue({})
+    const apiAudit = await loadPlugin()
+    apiAudit.plugin.register(mockServer)
+    const onPreResponse = mockServer.ext.mock.calls[0][1]
+
+    const request = buildRequest({
+      remoteAddress: '127.0.0.1',
+      headers: { 'x-forwarded-for': '203.0.113.5, 10.0.0.1' }
+    })
+    onPreResponse(request, mockH)
+
+    expect(mockPublishAuditEvent.mock.calls[0][0].ip).toBe('203.0.113.5')
+  })
+
+  test('should fall back to remoteAddress when x-forwarded-for is not present', async () => {
+    mockPublishAuditEvent.mockResolvedValue({})
+    const apiAudit = await loadPlugin()
+    apiAudit.plugin.register(mockServer)
+    const onPreResponse = mockServer.ext.mock.calls[0][1]
+
+    const request = buildRequest({ remoteAddress: '10.1.2.3', headers: {} })
+    onPreResponse(request, mockH)
+
+    expect(mockPublishAuditEvent.mock.calls[0][0].ip).toBe('10.1.2.3')
   })
 
   test('should omit correlationid rather than send it as undefined when no trace id is present', async () => {
