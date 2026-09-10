@@ -52,7 +52,7 @@ async function loadPlugin (options) {
 function buildRequest ({
   apiAudit = { action: 'search' },
   path = '/audit/search',
-  principalId = 'user-123',
+  email = 'user@example.com',
   response = { statusCode: 200, isBoom: false },
   query = {},
   remoteAddress = '127.0.0.1',
@@ -62,7 +62,7 @@ function buildRequest ({
     route: { path, settings: { plugins: { apiAudit } } },
     path,
     method: 'get',
-    auth: { credentials: { principalId } },
+    auth: { credentials: { email } },
     info: { remoteAddress },
     headers,
     response,
@@ -117,7 +117,7 @@ describe('api-audit plugin', () => {
     expect(mockPublishAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         version: '1.0.0',
-        user: 'user-123',
+        user: 'user@example.com',
         ip: '127.0.0.1',
         correlationid: 'trace-123',
         audit: expect.objectContaining({

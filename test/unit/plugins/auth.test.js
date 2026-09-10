@@ -331,6 +331,7 @@ describe('auth plugin', () => {
       expect(result.credentials.token.name).toBe('Test User')
       expect(result.credentials.token.email).toBe('test@example.com')
       expect(result.credentials.token.custom_claim).toBe('custom_value')
+      expect(result.credentials.email).toBe('test@example.com')
     })
 
     test('should reject token with empty groups array', async () => {
