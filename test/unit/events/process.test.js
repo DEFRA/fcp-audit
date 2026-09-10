@@ -2,14 +2,14 @@ import { vi, describe, beforeEach, test, expect } from 'vitest'
 import { Writable } from 'node:stream'
 import { pino } from 'pino'
 
-/* 
+/*
 Using an actual pino instance for these tests so it is possible to check the context added to log messages,
 rather then just the context passed in at the time the message was logged.
 */
 const logs = []
 
 const stream = new Writable({
-  write(chunk, encoding, callback) {
+  write (chunk, _, callback) {
     // Pino logs JSON strings ending with newline
     logs.push(JSON.parse(chunk.toString()))
     callback()

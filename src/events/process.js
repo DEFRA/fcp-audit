@@ -7,7 +7,7 @@ import { sentToSoc } from './soc.js'
 
 const logger = createLogger()
 
-function eventToLogContext(messageId, event) {
+function eventToLogContext (messageId, event) {
   return {
     event: {
       reference: messageId,
@@ -28,7 +28,7 @@ function eventToLogContext(messageId, event) {
   }
 }
 
-export async function processEvent(rawEvent) {
+export async function processEvent (rawEvent) {
   const { MessageId } = rawEvent
 
   const childLogger = logger.child({ event: { reference: MessageId } })
