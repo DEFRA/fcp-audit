@@ -18,6 +18,7 @@ services:
       AUTH_ENABLED: ${AUTH_ENABLED:-false}
       AUTH_TENANT_ID: ${AUTH_TENANT_ID}
       AUTH_ALLOWED_GROUP_IDS: ${AUTH_ALLOWED_GROUP_IDS}
+      AUDIT_INTERNAL_PUBLISH_SNS_TOPIC_ARN: arn:aws:sns:eu-west-2:000000000000:fcp_audit_publisher_stub
     volumes:
       - ./src:/home/node/src
       - ./package.json:/home/node/package.json

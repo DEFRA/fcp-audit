@@ -16,6 +16,7 @@ import { setupProxy } from './common/helpers/proxy/setup-proxy.js'
 import { mongoDb } from './common/helpers/mongodb.js'
 import { auth } from './plugins/auth.js'
 import { mongoTimeout } from './plugins/mongo-timeout.js'
+import { apiAudit } from './plugins/api-audit.js'
 import { polling } from './common/helpers/polling.js'
 
 async function createServer () {
@@ -65,6 +66,7 @@ async function createServer () {
     mongoDb,
     router,
     mongoTimeout,
+    apiAudit,
     polling
   ])
 

@@ -67,6 +67,7 @@ The service exposes the following endpoints at `http://localhost:3004`:
 | `GET` | `/api/v1/audit` | Yes | List audit events (paginated) |
 | `GET` | `/api/v1/audit/summary` | Yes | Summary of events by application/component |
 | `GET` | `/api/v1/audit/search` | Yes | Search audit events by conditions |
+| `GET` | `/api/v1/audit/download` | Yes | Download list of audit events
 
 All authenticated endpoints require a valid JWT Bearer token from Microsoft Entra ID with the appropriate security group membership.
 
