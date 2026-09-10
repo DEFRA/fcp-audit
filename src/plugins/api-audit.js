@@ -60,7 +60,7 @@ async function publishApiAuditEvent (request, status) {
   await publishAuditEvent(
     {
       version: AUDIT_EVENT_SCHEMA_VERSION,
-      user: request.auth.credentials?.principalId,
+      user: request.auth.credentials?.email,
       ip: getEndUserIpAddress(request),
       ...(getTraceId() && { correlationid: getTraceId() }),
       audit: {
