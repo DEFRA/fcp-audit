@@ -28,6 +28,9 @@ const api = [
     options: {
       description: 'Get all audit events',
       tags: ['api', 'audit'],
+      plugins: {
+        apiAudit: { action: 'read' }
+      },
       validate: {
         query: {
           ...paginationSchema
@@ -54,7 +57,10 @@ const api = [
     path: '/audit/summary',
     options: {
       description: 'Get audit event summary',
-      tags: ['api', 'audit']
+      tags: ['api', 'audit'],
+      plugins: {
+        apiAudit: { action: 'read' }
+      }
     },
     handler: async (_request, h) => {
       const summary = await getSummary()
@@ -67,6 +73,9 @@ const api = [
     options: {
       description: 'Search audit events',
       tags: ['api', 'audit'],
+      plugins: {
+        apiAudit: { action: 'search' }
+      },
       validate: {
         query: {
           conditions: Joi.array().items(
@@ -103,6 +112,9 @@ const api = [
     options: {
       description: 'Download all matching audit events as CSV',
       tags: ['api', 'audit'],
+      plugins: {
+        apiAudit: { action: 'download' }
+      },
       validate: {
         query: {
           conditions: Joi.array().items(
