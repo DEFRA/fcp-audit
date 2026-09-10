@@ -18,4 +18,26 @@ describe('generateAuditId', () => {
 
     expect(decoded).toContain('|2025-12-01T12:51:41.381Z|')
   })
+
+  test('generates the expected full id for the mock audit event', () => {
+    const id = generateAuditId(auditEvent)
+    const decoded = Buffer.from(id, 'base64').toString('utf-8')
+
+    expect(decoded).toBe('FCP001|fcp-audit|e66d78f5-a58d-46f6-a9b4-f8c90e99b6dc|2025-12-01T12:51:41.381Z|192.168.1.100')
+  })
+
+  test('uses an empty string for a null or undefined sessionid', () => {
+    const nullId = generateAuditId({ ...auditEvent, sessionid: null })
+    const undefinedId = generateAuditId({ ...auditEvent, sessionid: undefined })
+    const decoded = Buffer.from(nullId, 'base64').toString('utf-8')
+
+    expect(nullId).toBe(undefinedId)
+    expect(decoded).not.toContain('null')
+    expect(decoded).not.toContain('undefined')
+
+    const fields = decoded.split('|')
+    expect(fields).toHaveLength(5)
+    // Session id field
+    expect(fields[2]).toBe('')
+  })
 })
