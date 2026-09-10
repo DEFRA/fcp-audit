@@ -59,7 +59,7 @@ const api = [
       description: 'Get audit event summary',
       tags: ['api', 'audit'],
       plugins: {
-        apiAudit: { action: 'read' }
+        apiAudit: { action: 'read', entity: 'audit-summary' }
       }
     },
     handler: async (_request, h) => {

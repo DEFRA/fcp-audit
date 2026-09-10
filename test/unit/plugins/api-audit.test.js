@@ -255,6 +255,28 @@ describe('api-audit plugin', () => {
     expect(mockPublishAuditEvent.mock.calls[0][0].audit.entities[0].action).toBe(action)
   })
 
+  test('should default the audit entity to "audit" when not configured on the route', async () => {
+    mockPublishAuditEvent.mockResolvedValue({})
+    const apiAudit = await loadPlugin()
+    apiAudit.plugin.register(mockServer)
+    const onPreResponse = mockServer.ext.mock.calls[0][1]
+
+    onPreResponse(buildRequest({ apiAudit: { action: 'read' } }), mockH)
+
+    expect(mockPublishAuditEvent.mock.calls[0][0].audit.entities[0].entity).toBe('audit')
+  })
+
+  test('should use the entity configured via route options.plugins.apiAudit when provided', async () => {
+    mockPublishAuditEvent.mockResolvedValue({})
+    const apiAudit = await loadPlugin()
+    apiAudit.plugin.register(mockServer)
+    const onPreResponse = mockServer.ext.mock.calls[0][1]
+
+    onPreResponse(buildRequest({ path: '/audit/summary', apiAudit: { action: 'read', entity: 'audit-summary' } }), mockH)
+
+    expect(mockPublishAuditEvent.mock.calls[0][0].audit.entities[0].entity).toBe('audit-summary')
+  })
+
   test('should not publish for a route with no apiAudit plugin options configured', async () => {
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)

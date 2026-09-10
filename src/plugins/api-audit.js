@@ -7,6 +7,7 @@ import { getEndUserIpAddress } from '../common/helpers/get-client-ip.js'
 
 const AUDIT_EVENT_SCHEMA_VERSION = '1.0.0'
 const HTTP_STATUS_BAD_REQUEST = 400
+const DEFAULT_ENTITY = 'audit'
 const APPLICATION = 'Audit Service'
 const COMPONENT = config.get('serviceName')
 const ENVIRONMENT_NAME = `cdp-${config.get('cdpEnvironment')}`
@@ -54,7 +55,7 @@ function getErrorDetails (response) {
 }
 
 async function publishApiAuditEvent (request, status) {
-  const { action } = request.route.settings.plugins.apiAudit
+  const { action, entity = DEFAULT_ENTITY } = request.route.settings.plugins.apiAudit
 
   await publishAuditEvent(
     {
@@ -63,7 +64,7 @@ async function publishApiAuditEvent (request, status) {
       ip: getEndUserIpAddress(request),
       ...(getTraceId() && { correlationid: getTraceId() }),
       audit: {
-        entities: [{ entity: 'audit', action }],
+        entities: [{ entity, action }],
         status,
         details: {
           path: request.path,
