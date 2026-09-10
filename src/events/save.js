@@ -24,6 +24,6 @@ function toBase64 (str) {
 export function generateAuditId (event) {
   const datetime = new Date(event.datetime).toISOString()
   const sessionId = event.sessionid ?? ''
-  const rawId = `${event.application}|${event.component}|${sessionId}|${datetime}|${event.ip}`
+  const rawId = `${event.application}|${event.component}|${event.correlationid}|${sessionId}|${datetime}|${event.ip}`
   return toBase64(rawId)
 }
