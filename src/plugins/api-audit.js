@@ -5,6 +5,7 @@ import { snsClient } from '../common/helpers/sns.js'
 import { createLogger } from '../common/helpers/logging/logger.js'
 
 const AUDIT_EVENT_SCHEMA_VERSION = '1.0.0'
+const HTTP_STATUS_BAD_REQUEST = 400
 const APPLICATION = 'Audit Service'
 const COMPONENT = config.get('serviceName')
 const ENVIRONMENT_NAME = `cdp-${config.get('cdpEnvironment')}`
@@ -37,7 +38,9 @@ function shouldAudit (request) {
 
 function getAuditStatus (request) {
   const response = request.response
-  return response.isBoom || response.statusCode >= 400 ? 'failure' : 'success'
+  return response.isBoom || response.statusCode >= HTTP_STATUS_BAD_REQUEST
+    ? 'failure'
+    : 'success'
 }
 
 function getErrorDetails (response) {
