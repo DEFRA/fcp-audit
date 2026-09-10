@@ -3,6 +3,7 @@ import { getTraceId } from '@defra/hapi-tracing'
 import { config } from '../config/config.js'
 import { snsClient } from '../common/helpers/sns.js'
 import { createLogger } from '../common/helpers/logging/logger.js'
+import { getEndUserIpAddress } from '../common/helpers/get-client-ip.js'
 
 const AUDIT_EVENT_SCHEMA_VERSION = '1.0.0'
 const HTTP_STATUS_BAD_REQUEST = 400
@@ -59,7 +60,7 @@ async function publishApiAuditEvent (request, status) {
     {
       version: AUDIT_EVENT_SCHEMA_VERSION,
       user: request.auth.credentials?.principalId,
-      ip: request.info.remoteAddress,
+      ip: getEndUserIpAddress(request),
       ...(getTraceId() && { correlationid: getTraceId() }),
       audit: {
         entities: [{ entity: 'audit', action }],
