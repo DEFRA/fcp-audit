@@ -52,7 +52,7 @@ async function loadPlugin (options) {
 function buildRequest ({
   apiAudit = { action: 'search' },
   path = '/audit/search',
-  email = 'user@example.com',
+  credentials = { preferredUsername: 'user@example.com' },
   response = { statusCode: 200, isBoom: false },
   query = {},
   remoteAddress = '127.0.0.1',
@@ -62,7 +62,7 @@ function buildRequest ({
     route: { path, settings: { plugins: { apiAudit } } },
     path,
     method: 'get',
-    auth: { credentials: { email } },
+    auth: { credentials },
     info: { remoteAddress },
     headers,
     response,
@@ -135,6 +135,23 @@ describe('api-audit plugin', () => {
         generateCorrelationId: true
       })
     )
+  })
+
+  test.each([
+    ['preferredUsername', { preferredUsername: 'preferred@example.com', upn: 'upn@example.com', name: 'Test User', oid: 'oid-123' }, 'preferred@example.com'],
+    ['upn', { upn: 'upn@example.com', name: 'Test User', oid: 'oid-123' }, 'upn@example.com'],
+    ['name', { name: 'Test User', oid: 'oid-123' }, 'Test User'],
+    ['oid', { oid: 'oid-123' }, 'oid-123'],
+    ['nothing', {}, undefined]
+  ])('should fall back to %s when higher-priority claims are absent', async (_desc, credentials, expected) => {
+    mockPublishAuditEvent.mockResolvedValue({})
+    const apiAudit = await loadPlugin()
+    apiAudit.plugin.register(mockServer)
+    const onPreResponse = mockServer.ext.mock.calls[0][1]
+
+    onPreResponse(buildRequest({ credentials }), mockH)
+
+    expect(mockPublishAuditEvent.mock.calls[0][0].user).toBe(expected)
   })
 
   test('should use the client IP from x-forwarded-for when present, ignoring the proxy remoteAddress', async () => {

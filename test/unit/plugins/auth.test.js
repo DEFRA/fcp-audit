@@ -331,7 +331,32 @@ describe('auth plugin', () => {
       expect(result.credentials.token.name).toBe('Test User')
       expect(result.credentials.token.email).toBe('test@example.com')
       expect(result.credentials.token.custom_claim).toBe('custom_value')
-      expect(result.credentials.email).toBe('test@example.com')
+      expect(result.credentials.name).toBe('Test User')
+    })
+
+    test('should extract preferredUsername, upn, name and oid claims into credentials', async () => {
+      const payload = {
+        typ: 'JWT',
+        sub: 'user-123',
+        groups: ['group-1'],
+        preferred_username: 'user@example.com',
+        upn: 'user@tenant.onmicrosoft.com',
+        name: 'Test User',
+        oid: 'oid-123'
+      }
+
+      const artifacts = {
+        decoded: { payload }
+      }
+
+      const result = await validateFunction(artifacts, mockRequest, mockH)
+
+      expect(result.credentials).toEqual(expect.objectContaining({
+        preferredUsername: 'user@example.com',
+        upn: 'user@tenant.onmicrosoft.com',
+        name: 'Test User',
+        oid: 'oid-123'
+      }))
     })
 
     test('should reject token with empty groups array', async () => {
