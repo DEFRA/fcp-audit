@@ -54,13 +54,20 @@ function getErrorDetails (response) {
   return { statusCode: response.statusCode }
 }
 
+function getAuditUser (credentials) {
+  return credentials?.preferredUsername ??
+    credentials?.upn ??
+    credentials?.name ??
+    credentials?.oid
+}
+
 async function publishApiAuditEvent (request, status) {
   const { action, entity = DEFAULT_ENTITY } = request.route.settings.plugins.apiAudit
 
   await publishAuditEvent(
     {
       version: AUDIT_EVENT_SCHEMA_VERSION,
-      user: request.auth.credentials?.email,
+      user: getAuditUser(request.auth.credentials),
       ip: getEndUserIpAddress(request),
       ...(getTraceId() && { correlationid: getTraceId() }),
       audit: {
