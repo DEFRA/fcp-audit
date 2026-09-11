@@ -51,9 +51,6 @@ function getAuthOptions () {
       const credentials = {
         token: payload,
         principalId: payload.sub,
-        preferredUsername: payload.preferred_username,
-        upn: payload.upn,
-        name: payload.name,
         oid: payload.oid
       }
 
