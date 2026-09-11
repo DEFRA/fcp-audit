@@ -55,10 +55,7 @@ function getErrorDetails (response) {
 }
 
 function getAuditUser (credentials) {
-  return credentials?.preferredUsername ??
-    credentials?.upn ??
-    credentials?.name ??
-    credentials?.oid
+  return credentials?.oid ? `AAD/${credentials.oid}` : undefined
 }
 
 async function publishApiAuditEvent (request, status) {

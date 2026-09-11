@@ -52,7 +52,7 @@ async function loadPlugin (options) {
 function buildRequest ({
   apiAudit = { action: 'search' },
   path = '/audit/search',
-  credentials = { preferredUsername: 'user@example.com' },
+  credentials = { oid: 'oid-123' },
   response = { statusCode: 200, isBoom: false },
   query = {},
   remoteAddress = '127.0.0.1',
@@ -117,7 +117,7 @@ describe('api-audit plugin', () => {
     expect(mockPublishAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         version: '1.0.0',
-        user: 'user@example.com',
+        user: 'AAD/oid-123',
         ip: '127.0.0.1',
         correlationid: 'trace-123',
         audit: expect.objectContaining({
@@ -138,12 +138,9 @@ describe('api-audit plugin', () => {
   })
 
   test.each([
-    ['preferredUsername', { preferredUsername: 'preferred@example.com', upn: 'upn@example.com', name: 'Test User', oid: 'oid-123' }, 'preferred@example.com'],
-    ['upn', { upn: 'upn@example.com', name: 'Test User', oid: 'oid-123' }, 'upn@example.com'],
-    ['name', { name: 'Test User', oid: 'oid-123' }, 'Test User'],
-    ['oid', { oid: 'oid-123' }, 'oid-123'],
-    ['nothing', {}, undefined]
-  ])('should fall back to %s when higher-priority claims are absent', async (_desc, credentials, expected) => {
+    ['oid present', { oid: 'oid-123' }, 'AAD/oid-123'],
+    ['oid absent', {}, undefined]
+  ])('should set user from %s', async (_desc, credentials, expected) => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
