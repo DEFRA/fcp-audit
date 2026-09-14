@@ -53,7 +53,7 @@ export async function processEvent (rawEvent) {
       sentToSoc(socEvent)
     }
 
-    childLogger.info({}, 'Event processed successfully')
+    childLogger.info({}, `Event processed successfully: ${event.application}|${event.component}|${event.sessionid}|${event.datetime}|${event.ip}`)
     return true
   } catch (err) {
     childLogger.error({ err }, 'Unable to process event')

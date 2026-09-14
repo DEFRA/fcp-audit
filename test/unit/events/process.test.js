@@ -158,7 +158,7 @@ describe('processEvent', () => {
       expect.objectContaining({
         level: 30, // an info message
         event: { reference: 'test-message-id' },
-        msg: 'Event processed successfully'
+        msg: 'Event processed successfully: undefined|undefined|undefined|undefined|undefined'
       })
     )
   })
