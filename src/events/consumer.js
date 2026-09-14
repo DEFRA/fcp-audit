@@ -1,11 +1,8 @@
 import { ReceiveMessageCommand, DeleteMessageBatchCommand, SQSClient } from '@aws-sdk/client-sqs'
 import { config } from '../config/config.js'
 import { processEvent } from './process.js'
-import { createLogger } from '../common/helpers/logging/logger.js'
 
 const { sqs, region, endpoint, accessKeyId, secretAccessKey } = config.get('aws')
-
-const logger = createLogger()
 
 const sqsClient = new SQSClient({
   region,
@@ -19,6 +16,7 @@ const receiveParams = {
   QueueUrl: sqs.queueUrl,
   MaxNumberOfMessages: 10,
   WaitTimeSeconds: 10,
+  MessageSystemAttributeNames: ['SentTimestamp'],
 }
 
 export async function consumeEvents () {
@@ -28,7 +26,7 @@ export async function consumeEvents () {
     const processedEvents = []
 
     for (const event of Messages) {
-      if(await processEvent(event)){
+      if (await processEvent(event)) {
         processedEvents.push({ Id: event.MessageId, ReceiptHandle: event.ReceiptHandle })
       }
     }

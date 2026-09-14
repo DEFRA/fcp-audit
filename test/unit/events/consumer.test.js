@@ -60,6 +60,7 @@ describe('consumeEvents', () => {
         QueueUrl: 'http://localhost:4566/000000000000/test-queue',
         MaxNumberOfMessages: 10,
         WaitTimeSeconds: 10,
+        MessageSystemAttributeNames: ['SentTimestamp'],
       })
     }))
   })
