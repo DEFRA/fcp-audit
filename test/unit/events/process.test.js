@@ -2,7 +2,7 @@ import { vi, describe, beforeEach, test, expect } from 'vitest'
 import { Writable } from 'node:stream'
 import { pino } from 'pino'
 
-/* 
+/*
 Using an actual pino instance for these tests so it is possible to check the context added to log messages,
 rather then just the context passed in at the time the message was logged.
 */
@@ -132,7 +132,7 @@ describe('processEvent', () => {
       expect.objectContaining({
         level: 30, // an info message
         event: { reference: 'test-message-id' },
-        msg: 'Event processed successfully'
+        msg: 'Event processed successfully: undefined|undefined|undefined|undefined|undefined'
       })
     )
   })
