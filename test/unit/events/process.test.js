@@ -2,14 +2,14 @@ import { vi, describe, beforeEach, test, expect } from 'vitest'
 import { Writable } from 'node:stream'
 import { pino } from 'pino'
 
-/* 
+/*
 Using an actual pino instance for these tests so it is possible to check the context added to log messages,
 rather then just the context passed in at the time the message was logged.
 */
 const logs = []
 
 const stream = new Writable({
-  write(chunk, encoding, callback) {
+  write (chunk, encoding, callback) {
     // Pino logs JSON strings ending with newline
     logs.push(JSON.parse(chunk.toString()))
     callback()
@@ -60,6 +60,7 @@ const testEvent = {
 
 const testRawEvent = {
   MessageId: 'test-message-id',
+  Attributes: { SentTimestamp: '1755525168000' },
   Body: JSON.stringify({
     Message: JSON.stringify(testEvent)
   })
@@ -68,6 +69,7 @@ const testRawEvent = {
 const createRawTestEvent = (message) => {
   return {
     MessageId: 'test-message-id',
+    Attributes: { SentTimestamp: '1755525168000' },
     Body: JSON.stringify({
       Message: JSON.stringify(message)
     })
@@ -97,7 +99,7 @@ describe('processEvent', () => {
 
   test('should save the event payload specific to the event type', async () => {
     await processEvent(testRawEvent)
-    expect(mockSaveEvent).toHaveBeenCalledWith(testEvent)
+    expect(mockSaveEvent).toHaveBeenCalledWith(testEvent, { messageId: 'test-message-id', sentTimestamp: '1755525168000' })
   })
 
   test('should transform the event into auditEvent and socEvent', async () => {
@@ -112,7 +114,7 @@ describe('processEvent', () => {
 
     await processEvent(testRawEvent)
 
-    expect(mockSaveEvent).toHaveBeenCalledWith(auditEvent)
+    expect(mockSaveEvent).toHaveBeenCalledWith(auditEvent, { messageId: 'test-message-id', sentTimestamp: '1755525168000' })
   })
 
   test('should send SOC event to SOC', async () => {
@@ -123,6 +125,30 @@ describe('processEvent', () => {
     await processEvent(testRawEvent)
 
     expect(mockSentToSoc).toHaveBeenCalledWith(socEvent)
+  })
+
+  test('should log an error and fall back to the current time when the SQS message has no SentTimestamp attribute', async () => {
+    const auditEvent = { audit: 'event' }
+    mockTransformEvent.mockReturnValue({ auditEvent, socEvent: null })
+
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-14T10:00:00.000Z'))
+
+    const rawEventWithoutTimestamp = { MessageId: 'test-message-id', Body: testRawEvent.Body }
+    const result = await processEvent(rawEventWithoutTimestamp)
+
+    vi.useRealTimers()
+
+    expect(result).toBe(true)
+    expect(mockSaveEvent).toHaveBeenCalledWith(auditEvent, { messageId: 'test-message-id', sentTimestamp: Date.parse('2026-09-14T10:00:00.000Z') })
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          level: 50, // an error message
+          msg: 'Unable to determine SQS SentTimestamp for message, falling back to current time for audit id generation'
+        })
+      ])
+    )
   })
 
   test('should log success with SQS message id', async () => {

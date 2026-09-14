@@ -7,7 +7,7 @@ import { sentToSoc } from './soc.js'
 
 const logger = createLogger()
 
-function eventToLogContext(messageId, event) {
+function eventToLogContext (messageId, event) {
   return {
     event: {
       reference: messageId,
@@ -28,8 +28,8 @@ function eventToLogContext(messageId, event) {
   }
 }
 
-export async function processEvent(rawEvent) {
-  const { MessageId } = rawEvent
+export async function processEvent (rawEvent) {
+  const { MessageId, Attributes } = rawEvent
 
   const childLogger = logger.child({ event: { reference: MessageId } })
   try {
@@ -41,7 +41,12 @@ export async function processEvent(rawEvent) {
     const { auditEvent, socEvent } = transformEvent(event)
 
     if (auditEvent) {
-      await saveEvent(auditEvent)
+      let sentTimestamp = Attributes?.SentTimestamp
+      if (!sentTimestamp) {
+        childLogger.error({}, 'Unable to determine SQS SentTimestamp for message, falling back to current time for audit id generation')
+        sentTimestamp = Date.now()
+      }
+      await saveEvent(auditEvent, { messageId: MessageId, sentTimestamp })
     }
 
     if (socEvent) {

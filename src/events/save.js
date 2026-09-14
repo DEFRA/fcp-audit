@@ -3,12 +3,12 @@ import { config } from '../config/config.js'
 
 const maxTimeMS = config.get('mongo.maxTimeMS')
 
-export async function saveEvent (auditEvent) {
+export async function saveEvent (auditEvent, messageContext) {
   const { collections } = getMongoDb()
   const { audit: auditCollection } = collections
 
   const now = new Date()
-  const auditEntity = { _id: generateAuditId(auditEvent), ...auditEvent, received: now }
+  const auditEntity = { _id: generateAuditId(messageContext), ...auditEvent, received: now }
 
   await auditCollection.updateOne(
     { _id: auditEntity._id },
@@ -17,11 +17,9 @@ export async function saveEvent (auditEvent) {
   )
 }
 
-function toBase64 (str) {
-  return Buffer.from(str, 'utf-8').toString('base64')
-}
-
-export function generateAuditId (event) {
-  const rawId = `${event.application}|${event.component}|${event.sessionid}|${event.datetime}|${event.ip}`
-  return toBase64(rawId)
+export function generateAuditId ({ messageId, sentTimestamp }) {
+  // SQS only guarantees MessageId is unique "for an extended period of time", not forever. Although practically
+  // unlikely, it is theoretically possible for a collision to occur, given this guarantee. Prefixing with the
+  // timestamp the message was sent adds an additional layer of uniqueness to further reduce any chance of collision.
+  return `${sentTimestamp}-${messageId}`
 }

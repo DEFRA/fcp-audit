@@ -6,6 +6,7 @@ import { clearAllCollections } from '../../../helpers/mongo.js'
 import { auditEvent as auditEventPayload } from '../../../mocks/event.js'
 
 const auditEvent = structuredClone(auditEventPayload)
+const messageContext = { messageId: 'e66d78f5-a58d-46f6-a9b4-f8c90e99b6dc', sentTimestamp: '1764593501381' }
 
 const auditEvent2 = structuredClone({
   ...auditEventPayload,
@@ -26,6 +27,7 @@ const auditEvent2 = structuredClone({
     }
   }
 })
+const messageContext2 = { messageId: 'f77e89c6-b69e-47c7-b0c5-c9d91f00c7ed', sentTimestamp: '1764597101381' }
 
 let collections
 
@@ -45,10 +47,10 @@ describe('saveEvent', () => {
     await closeMongoDbConnection()
   })
 
-  test('should save audit event to audit collection with composite _id', async () => {
-    await saveEvent(auditEvent)
+  test('should save audit event to audit collection with an id derived from the SQS message', async () => {
+    await saveEvent(auditEvent, messageContext)
 
-    const expectedId = generateAuditId(auditEvent)
+    const expectedId = generateAuditId(messageContext)
     const savedEvent = await collections.audit.findOne({ _id: expectedId })
 
     expect(savedEvent).toBeDefined()
@@ -60,10 +62,10 @@ describe('saveEvent', () => {
 
   test('should add received timestamp to saved audit event', async () => {
     const beforeSave = new Date()
-    await saveEvent(auditEvent)
+    await saveEvent(auditEvent, messageContext)
     const afterSave = new Date()
 
-    const expectedId = generateAuditId(auditEvent)
+    const expectedId = generateAuditId(messageContext)
     const savedEvent = await collections.audit.findOne({ _id: expectedId })
 
     expect(savedEvent).toBeDefined()
@@ -74,19 +76,19 @@ describe('saveEvent', () => {
   })
 
   test('should save audit metadata fields', async () => {
-    await saveEvent(auditEvent)
+    await saveEvent(auditEvent, messageContext)
 
-    const expectedId = generateAuditId(auditEvent)
+    const expectedId = generateAuditId(messageContext)
     const savedEvent = await collections.audit.findOne({ _id: expectedId })
 
     expect(savedEvent).toBeDefined()
     expect(savedEvent.audit).toEqual(auditEvent.audit)
   })
 
-  test('should not update existing audit event if duplicate event with same composite key', async () => {
-    await saveEvent(auditEvent)
+  test('should not update existing audit event when the same SQS message is redelivered', async () => {
+    await saveEvent(auditEvent, messageContext)
 
-    // Attempt to save duplicate event with modified data
+    // Attempt to save the same SQS message again (e.g. after a visibility timeout requeue) with modified data
     const duplicateEvent = {
       ...auditEvent,
       audit: {
@@ -95,9 +97,9 @@ describe('saveEvent', () => {
       }
     }
 
-    await saveEvent(duplicateEvent)
+    await saveEvent(duplicateEvent, messageContext)
 
-    const expectedId = generateAuditId(auditEvent)
+    const expectedId = generateAuditId(messageContext)
     const eventsCount = await collections.audit.countDocuments({ _id: expectedId })
     expect(eventsCount).toBe(1)
 
@@ -107,11 +109,11 @@ describe('saveEvent', () => {
   })
 
   test('should save multiple different audit events', async () => {
-    await saveEvent(auditEvent)
-    await saveEvent(auditEvent2)
+    await saveEvent(auditEvent, messageContext)
+    await saveEvent(auditEvent2, messageContext2)
 
-    const expectedId1 = generateAuditId(auditEvent)
-    const expectedId2 = generateAuditId(auditEvent2)
+    const expectedId1 = generateAuditId(messageContext)
+    const expectedId2 = generateAuditId(messageContext2)
 
     const savedEvent1 = await collections.audit.findOne({ _id: expectedId1 })
     const savedEvent2 = await collections.audit.findOne({ _id: expectedId2 })
@@ -126,21 +128,16 @@ describe('saveEvent', () => {
     expect(totalCount).toBe(2)
   })
 
-  test('should generate unique _id based on composite key fields', () => {
-    const id1 = generateAuditId(auditEvent)
-    const id2 = generateAuditId(auditEvent2)
+  test('should generate a unique _id per SQS message', () => {
+    const id1 = generateAuditId(messageContext)
+    const id2 = generateAuditId(messageContext2)
 
     expect(id1).toBeDefined()
     expect(id2).toBeDefined()
     expect(id1).not.toBe(id2)
 
-    // Same event should generate same ID
-    const id1Duplicate = generateAuditId(auditEvent)
+    // Same SQS message should generate the same ID
+    const id1Duplicate = generateAuditId(messageContext)
     expect(id1).toBe(id1Duplicate)
-
-    // Events differing only by component should generate unique IDs
-    const differentComponentEvent = { ...auditEvent, component: 'fcp-other' }
-    const id3 = generateAuditId(differentComponentEvent)
-    expect(id1).not.toBe(id3)
   })
 })
