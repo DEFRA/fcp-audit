@@ -52,10 +52,11 @@ async function loadPlugin (options) {
 function buildRequest ({
   apiAudit = { action: 'search' },
   path = '/audit/search',
-  credentials = { oid: 'oid-123' },
+  credentials = {},
   response = { statusCode: 200, isBoom: false },
   query = {},
   remoteAddress = '127.0.0.1',
+  received = Date.parse('2024-01-01T00:00:00.000Z'),
   headers = {}
 } = {}) {
   return {
@@ -63,7 +64,7 @@ function buildRequest ({
     path,
     method: 'get',
     auth: { credentials },
-    info: { remoteAddress },
+    info: { remoteAddress, received },
     headers,
     response,
     query
@@ -111,13 +112,13 @@ describe('api-audit plugin', () => {
     const onPreResponse = mockServer.ext.mock.calls[0][1]
 
     const query = { page: 1, pageSize: 20, conditions: [{ field: 'audit.status', operator: 'eq', value: 'success' }] }
-    const request = buildRequest({ path: '/audit/search', apiAudit: { action: 'search' }, query })
+    const request = buildRequest({ path: '/audit/search', apiAudit: { action: 'search' }, query, headers: { 'x-audit-user-id': 'user-123' } })
     onPreResponse(request, mockH)
 
     expect(mockPublishAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        version: '1.0.0',
-        user: 'AAD/oid-123',
+        datetime: '2024-01-01T00:00:00.000Z',
+        user: 'AAD/user-123',
         ip: '127.0.0.1',
         correlationid: 'trace-123',
         audit: expect.objectContaining({
@@ -138,9 +139,23 @@ describe('api-audit plugin', () => {
   })
 
   test.each([
-    ['oid present', { oid: 'oid-123' }, 'AAD/oid-123'],
-    ['oid absent', {}, undefined]
-  ])('should set user from %s', async (_desc, credentials, expected) => {
+    ['x-audit-user-id header present', { 'x-audit-user-id': 'user-123' }, 'AAD/user-123'],
+    ['x-audit-user-id header absent', {}, undefined]
+  ])('should set user from %s', async (_desc, headers, expected) => {
+    mockPublishAuditEvent.mockResolvedValue({})
+    const apiAudit = await loadPlugin()
+    apiAudit.plugin.register(mockServer)
+    const onPreResponse = mockServer.ext.mock.calls[0][1]
+
+    onPreResponse(buildRequest({ headers }), mockH)
+
+    expect(mockPublishAuditEvent.mock.calls[0][0].user).toBe(expected)
+  })
+
+  test.each([
+    ['sid present', { sid: 'sid-123' }, 'sid-123'],
+    ['sid absent', {}, undefined]
+  ])('should set sessionid from %s', async (_desc, credentials, expected) => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
@@ -148,7 +163,7 @@ describe('api-audit plugin', () => {
 
     onPreResponse(buildRequest({ credentials }), mockH)
 
-    expect(mockPublishAuditEvent.mock.calls[0][0].user).toBe(expected)
+    expect(mockPublishAuditEvent.mock.calls[0][0].sessionid).toBe(expected)
   })
 
   test('should use the client IP from x-forwarded-for when present, ignoring the proxy remoteAddress', async () => {

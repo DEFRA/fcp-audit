@@ -5,7 +5,6 @@ import { snsClient } from '../common/helpers/sns.js'
 import { createLogger } from '../common/helpers/logging/logger.js'
 import { getEndUserIpAddress } from '../common/helpers/get-client-ip.js'
 
-const AUDIT_EVENT_SCHEMA_VERSION = '1.0.0'
 const HTTP_STATUS_BAD_REQUEST = 400
 const DEFAULT_ENTITY = 'audit'
 const APPLICATION = 'Audit Service'
@@ -54,8 +53,9 @@ function getErrorDetails (response) {
   return { statusCode: response.statusCode }
 }
 
-function getAuditUser (credentials) {
-  return credentials?.oid ? `AAD/${credentials.oid}` : undefined
+function getAuditUser (request) {
+  const userId = request.headers['x-audit-user-id']
+  return userId ? `AAD/${userId}` : undefined
 }
 
 async function publishApiAuditEvent (request, status) {
@@ -63,8 +63,9 @@ async function publishApiAuditEvent (request, status) {
 
   await publishAuditEvent(
     {
-      version: AUDIT_EVENT_SCHEMA_VERSION,
-      user: getAuditUser(request.auth.credentials),
+      datetime: new Date(request.info.received).toISOString(),
+      user: getAuditUser(request),
+      ...(request.auth.credentials?.sid && { sessionid: request.auth.credentials.sid }),
       ip: getEndUserIpAddress(request),
       ...(getTraceId() && { correlationid: getTraceId() }),
       audit: {

@@ -51,7 +51,7 @@ function getAuthOptions () {
       const credentials = {
         token: payload,
         principalId: payload.sub,
-        oid: payload.oid
+        sid: payload.sid
       }
 
       return { isValid: true, credentials }
