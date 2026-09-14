@@ -71,6 +71,8 @@ The service exposes the following endpoints at `http://localhost:3004`:
 
 All authenticated endpoints require a valid JWT Bearer token from Microsoft Entra ID with the appropriate security group membership.
 
+Callers may optionally pass an `x-audit-user-id` header containing the calling user's Microsoft Entra ID (AAD) object ID. When present, this value is recorded as the user against the API audit event generated for the request; if omitted, the request is still audited but without an associated user.
+
 For full schema details see [`docs/openapi.yml`](docs/openapi.yml).
 
 ## Environment Variables
