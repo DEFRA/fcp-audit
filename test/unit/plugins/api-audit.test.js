@@ -122,7 +122,7 @@ describe('api-audit plugin', () => {
         ip: '127.0.0.1',
         correlationid: 'trace-123',
         audit: expect.objectContaining({
-          entities: [{ entity: 'audit', action: 'search' }],
+          entities: [{ entity: 'audit', action: 'search', entityid: 'trace-123' }],
           status: 'success',
           details: { path: '/audit/search', method: 'get', query }
         })
@@ -266,6 +266,21 @@ describe('api-audit plugin', () => {
     onPreResponse(buildRequest({ response: { statusCode: 500, isBoom: false } }), mockH)
 
     expect(mockPublishAuditEvent.mock.calls[0][0].audit.details.errorDetails).toEqual({ statusCode: 500 })
+  })
+
+  test.each([
+    ['trace id present', 'trace-123', 'trace-123'],
+    ['trace id absent', undefined, undefined]
+  ])('should set entityid from %s', async (_desc, traceId, expected) => {
+    mockPublishAuditEvent.mockResolvedValue({})
+    mockGetTraceId.mockReturnValue(traceId)
+    const apiAudit = await loadPlugin()
+    apiAudit.plugin.register(mockServer)
+    const onPreResponse = mockServer.ext.mock.calls[0][1]
+
+    onPreResponse(buildRequest(), mockH)
+
+    expect(mockPublishAuditEvent.mock.calls[0][0].audit.entities[0].entityid).toBe(expected)
   })
 
   test.each([

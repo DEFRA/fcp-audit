@@ -60,6 +60,7 @@ function getAuditUser (request) {
 
 async function publishApiAuditEvent (request, status) {
   const { action, entity = DEFAULT_ENTITY } = request.route.settings.plugins.apiAudit
+  const traceId = getTraceId()
 
   await publishAuditEvent(
     {
@@ -67,9 +68,9 @@ async function publishApiAuditEvent (request, status) {
       user: getAuditUser(request),
       ...(request.auth.credentials?.sid && { sessionid: request.auth.credentials.sid }),
       ip: getEndUserIpAddress(request),
-      ...(getTraceId() && { correlationid: getTraceId() }),
+      ...(traceId && { correlationid: traceId }),
       audit: {
-        entities: [{ entity, action }],
+        entities: [{ entity, action, ...(traceId && { entityid: traceId }) }],
         status,
         details: {
           path: request.path,
