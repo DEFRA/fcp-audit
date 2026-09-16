@@ -9,7 +9,7 @@ rather then just the context passed in at the time the message was logged.
 const logs = []
 
 const stream = new Writable({
-  write (chunk, encoding, callback) {
+  write (chunk, _, callback) {
     // Pino logs JSON strings ending with newline
     logs.push(JSON.parse(chunk.toString()))
     callback()

@@ -2,15 +2,9 @@ import { ReceiveMessageCommand, DeleteMessageBatchCommand, SQSClient } from '@aw
 import { config } from '../config/config.js'
 import { processEvent } from './process.js'
 
-const { sqs, region, endpoint, accessKeyId, secretAccessKey } = config.get('aws')
+const { sqs } = config.get('aws')
 
-const sqsClient = new SQSClient({
-  region,
-  ...(endpoint && {
-    endpoint,
-    credentials: { accessKeyId, secretAccessKey }
-  })
-})
+const sqsClient = new SQSClient()
 
 const receiveParams = {
   QueueUrl: sqs.queueUrl,

@@ -112,6 +112,14 @@ const config = convict({
         env: 'AWS_SQS_QUEUE_URL',
         default: null
       }
+    },
+    sns: {
+      topicArn: {
+        doc: 'AWS SNS topic ARN for publishing api access audit events',
+        format: String,
+        default: null,
+        env: 'AUDIT_INTERNAL_PUBLISH_SNS_TOPIC_ARN'
+      }
     }
   },
   mongo: {

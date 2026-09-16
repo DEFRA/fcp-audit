@@ -95,6 +95,7 @@ paths:
             type: string
             example: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik..."
           style: simple
+        - $ref: '#/components/parameters/AuditUserIdHeader'
         - name: page
           in: query
           description: Page number for paginated results (1-based)
@@ -204,6 +205,7 @@ paths:
             type: string
             example: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik..."
           style: simple
+        - $ref: '#/components/parameters/AuditUserIdHeader'
       responses:
         '200':
           description: Successfully retrieved audit summary
@@ -269,6 +271,7 @@ paths:
             type: string
             example: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik..."
           style: simple
+        - $ref: '#/components/parameters/AuditUserIdHeader'
         - name: conditions
           in: query
           description: Array of search conditions
@@ -359,6 +362,7 @@ paths:
             type: string
             example: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik..."
           style: simple
+        - $ref: '#/components/parameters/AuditUserIdHeader'
         - name: conditions
           in: query
           description: Array of search conditions to filter the downloaded events
@@ -399,6 +403,20 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
 components:
+  parameters:
+    AuditUserIdHeader:
+      name: x-audit-user-id
+      in: header
+      description: |
+        Microsoft Entra ID (AAD) object ID of the calling user, used to attribute
+        this request to a user in the service's own API audit trail. Optional -
+        if omitted, the request is still audited but without an associated user.
+      required: false
+      schema:
+        type: string
+        example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+      style: simple
+
   schemas:
     HealthResponse:
       type: object

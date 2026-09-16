@@ -67,8 +67,11 @@ The service exposes the following endpoints at `http://localhost:3004`:
 | `GET` | `/api/v1/audit` | Yes | List audit events (paginated) |
 | `GET` | `/api/v1/audit/summary` | Yes | Summary of events by application/component |
 | `GET` | `/api/v1/audit/search` | Yes | Search audit events by conditions |
+| `GET` | `/api/v1/audit/download` | Yes | Download list of audit events
 
 All authenticated endpoints require a valid JWT Bearer token from Microsoft Entra ID with the appropriate security group membership.
+
+Callers may optionally pass an `x-audit-user-id` header containing the calling user's Microsoft Entra ID (AAD) object ID. When present, this value is recorded as the user against the API audit event generated for the request; if omitted, the request is still audited but without an associated user.
 
 For full schema details see [`docs/openapi.yml`](docs/openapi.yml).
 

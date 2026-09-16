@@ -333,6 +333,25 @@ describe('auth plugin', () => {
       expect(result.credentials.token.custom_claim).toBe('custom_value')
     })
 
+    test('should extract sid claim into credentials', async () => {
+      const payload = {
+        typ: 'JWT',
+        sub: 'user-123',
+        groups: ['group-1'],
+        sid: 'sid-123'
+      }
+
+      const artifacts = {
+        decoded: { payload }
+      }
+
+      const result = await validateFunction(artifacts, mockRequest, mockH)
+
+      expect(result.credentials).toEqual(expect.objectContaining({
+        sid: 'sid-123'
+      }))
+    })
+
     test('should reject token with empty groups array', async () => {
       const payload = {
         typ: 'JWT',
