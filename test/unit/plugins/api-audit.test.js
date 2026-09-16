@@ -57,7 +57,8 @@ function buildRequest ({
   query = {},
   remoteAddress = '127.0.0.1',
   received = Date.parse('2024-01-01T00:00:00.000Z'),
-  headers = {}
+  headers = {},
+  app = {}
 } = {}) {
   return {
     route: { path, settings: { plugins: { apiAudit } } },
@@ -67,8 +68,13 @@ function buildRequest ({
     info: { remoteAddress, received },
     headers,
     response,
-    query
+    query,
+    app
   }
+}
+
+function getExt (mockServer, type) {
+  return mockServer.ext.mock.calls.find(([extType]) => extType === type)[1]
 }
 
 describe('api-audit plugin', () => {
@@ -96,7 +102,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockReturnValue(new Promise(() => {})) // never resolves
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     const request = buildRequest()
     const result = onPreResponse(request, mockH)
@@ -104,15 +110,33 @@ describe('api-audit plugin', () => {
     expect(result).toBe('continue-symbol')
   })
 
-  test('should publish an audit event for a tagged audit route', async () => {
-    mockPublishAuditEvent.mockResolvedValue({ messageId: 'abc' })
+  test('should register an onPreHandler extension that captures the trace id onto the request', async () => {
     mockGetTraceId.mockReturnValue('trace-123')
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreHandler = getExt(mockServer, 'onPreHandler')
+
+    const request = buildRequest()
+    const result = onPreHandler(request, mockH)
+
+    expect(request.app.traceId).toBe('trace-123')
+    expect(result).toBe('continue-symbol')
+  })
+
+  test('should publish an audit event for a tagged audit route', async () => {
+    mockPublishAuditEvent.mockResolvedValue({ messageId: 'abc' })
+    const apiAudit = await loadPlugin()
+    apiAudit.plugin.register(mockServer)
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     const query = { page: 1, pageSize: 20, conditions: [{ field: 'audit.status', operator: 'eq', value: 'success' }] }
-    const request = buildRequest({ path: '/audit/search', apiAudit: { action: 'search' }, query, headers: { 'x-audit-user-id': 'user-123' } })
+    const request = buildRequest({
+      path: '/audit/search',
+      apiAudit: { action: 'search' },
+      query,
+      headers: { 'x-audit-user-id': 'user-123' },
+      app: { traceId: 'trace-123' }
+    })
     onPreResponse(request, mockH)
 
     expect(mockPublishAuditEvent).toHaveBeenCalledWith(
@@ -145,7 +169,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     onPreResponse(buildRequest({ headers }), mockH)
 
@@ -159,7 +183,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     onPreResponse(buildRequest({ credentials }), mockH)
 
@@ -170,7 +194,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     const request = buildRequest({
       remoteAddress: '127.0.0.1',
@@ -185,7 +209,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     const request = buildRequest({ remoteAddress: '10.1.2.3', headers: {} })
     onPreResponse(request, mockH)
@@ -195,12 +219,11 @@ describe('api-audit plugin', () => {
 
   test('should omit correlationid rather than send it as undefined when no trace id is present', async () => {
     mockPublishAuditEvent.mockResolvedValue({})
-    mockGetTraceId.mockReturnValue(undefined)
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
-    onPreResponse(buildRequest(), mockH)
+    onPreResponse(buildRequest({ app: { traceId: undefined } }), mockH)
 
     expect(mockPublishAuditEvent.mock.calls[0][0]).not.toHaveProperty('correlationid')
   })
@@ -219,7 +242,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     onPreResponse(buildRequest({ response }), mockH)
 
@@ -230,7 +253,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     onPreResponse(buildRequest({ response: { statusCode: 200, isBoom: false } }), mockH)
 
@@ -241,7 +264,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     const response = {
       statusCode: 400,
@@ -261,7 +284,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     onPreResponse(buildRequest({ response: { statusCode: 500, isBoom: false } }), mockH)
 
@@ -273,12 +296,11 @@ describe('api-audit plugin', () => {
     ['trace id absent', undefined, undefined]
   ])('should set entityid from %s', async (_desc, traceId, expected) => {
     mockPublishAuditEvent.mockResolvedValue({})
-    mockGetTraceId.mockReturnValue(traceId)
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
-    onPreResponse(buildRequest(), mockH)
+    onPreResponse(buildRequest({ app: { traceId } }), mockH)
 
     expect(mockPublishAuditEvent.mock.calls[0][0].audit.entities[0].entityid).toBe(expected)
   })
@@ -292,7 +314,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     onPreResponse(buildRequest({ path, apiAudit: { action } }), mockH)
 
@@ -303,7 +325,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     onPreResponse(buildRequest({ apiAudit: { action: 'read' } }), mockH)
 
@@ -314,7 +336,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockResolvedValue({})
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     onPreResponse(buildRequest({ path: '/audit/summary', apiAudit: { action: 'read', entity: 'audit-summary' } }), mockH)
 
@@ -324,7 +346,7 @@ describe('api-audit plugin', () => {
   test('should not publish for a route with no apiAudit plugin options configured', async () => {
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     const request = buildRequest({ apiAudit: null, path: '/health' })
     onPreResponse(request, mockH)
@@ -337,7 +359,7 @@ describe('api-audit plugin', () => {
     mockPublishAuditEvent.mockRejectedValue(error)
     const apiAudit = await loadPlugin()
     apiAudit.plugin.register(mockServer)
-    const onPreResponse = mockServer.ext.mock.calls[0][1]
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
 
     const request = buildRequest()
     onPreResponse(request, mockH)
