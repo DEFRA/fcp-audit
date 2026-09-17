@@ -18,6 +18,15 @@ export const apiAudit = {
   plugin: {
     name: 'api-audit',
     register: (server, _options) => {
+      // getTraceId() relies on an AsyncLocalStorage context that @defra/hapi-tracing only
+      // maintains through Hapi's main request lifecycle (up to onPostHandler). onPreResponse
+      // runs afterwards, via Hapi's separate _postCycle, outside that context - so the trace id
+      // must be captured earlier (here) and carried on the request for onPreResponse to read.
+      server.ext('onPreHandler', (request, h) => {
+        request.app.traceId = getTraceId()
+        return h.continue
+      })
+
       server.ext('onPreResponse', (request, h) => {
         if (shouldAudit(request)) {
           const status = getAuditStatus(request)
@@ -60,6 +69,7 @@ function getAuditUser (request) {
 
 async function publishApiAuditEvent (request, status) {
   const { action, entity = DEFAULT_ENTITY } = request.route.settings.plugins.apiAudit
+  const traceId = request.app.traceId
 
   await publishAuditEvent(
     {
@@ -67,9 +77,9 @@ async function publishApiAuditEvent (request, status) {
       user: getAuditUser(request),
       ...(request.auth.credentials?.sid && { sessionid: request.auth.credentials.sid }),
       ip: getEndUserIpAddress(request),
-      ...(getTraceId() && { correlationid: getTraceId() }),
+      ...(traceId && { correlationid: traceId }),
       audit: {
-        entities: [{ entity, action }],
+        entities: [{ entity, action, ...(traceId && { entityid: traceId }) }],
         status,
         details: {
           path: request.path,
