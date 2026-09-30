@@ -177,6 +177,22 @@ describe('api-audit plugin', () => {
   })
 
   test.each([
+    ['empty', {}],
+    ['undefined', undefined]
+  ])('should not set query in details when query is %s', async (_desc, query) => {
+    mockPublishAuditEvent.mockResolvedValue({})
+    const apiAudit = await loadPlugin()
+    apiAudit.plugin.register(mockServer)
+    const onPreResponse = getExt(mockServer, 'onPreResponse')
+
+    const request = buildRequest()
+    request.query = query
+    onPreResponse(request, mockH)
+
+    expect(mockPublishAuditEvent.mock.calls[0][0].audit.details).not.toHaveProperty('query')
+  })
+
+  test.each([
     ['sid present', { sid: 'sid-123' }, 'sid-123'],
     ['sid absent', {}, undefined]
   ])('should set sessionid from %s', async (_desc, credentials, expected) => {

@@ -84,7 +84,7 @@ async function publishApiAuditEvent (request, status) {
         details: {
           path: request.path,
           method: request.method,
-          query: request.query,
+          ...(Object.keys(request.query ?? {}).length > 0 && { query: request.query }),
           ...(status === 'failure' && {
             errorDetails: getErrorDetails(request.response)
           })
