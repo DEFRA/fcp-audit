@@ -283,10 +283,16 @@ node scripts/send-test-event.js --rand --events 10
 node scripts/send-test-event.js --audit --events 50
 ```
 
-## Accessing the Dead Letter Queue
+### Notes
 
-Any events that the service can’t process will go through the standard SQS retry processing (three attempts in 
-total) before being delivered to a dead-letter queue. This dead-letter queue can be accessed in non-production 
+- Events with a `security` object are forwarded to SOC but **not** persisted in MongoDB. Only events containing an `audit` object are stored.
+- When using `--rand`, the script randomly selects from all three valid applications (`Single Front Door`, `Data Access Layer`, `Grants Platform`) and their corresponding components.
+
+
+## Accessing the Dead-Letter Queue
+
+Any events that the service can’t process will go through the standard SQS retry processing (three attempts in
+total) before being delivered to a dead-letter queue. This dead-letter queue can be accessed in non-production
 environments via the CDP terminal as follows:
 
 ```shell
@@ -297,10 +303,24 @@ aws sqs receive-message \
   --wait-time-seconds 2
 ```
 
-### Notes
+You can delete individual messages from the dead-letter queue using the receipt handle returned by the
+`receive-message` command above:
 
-- Events with a `security` object are forwarded to SOC but **not** persisted in MongoDB. Only events containing an `audit` object are stored.
-- When using `--rand`, the script randomly selects from all three valid applications (`Single Front Door`, `Data Access Layer`, `Grants Platform`) and their corresponding components.
+```shell
+QUEUE_URL=$(aws sqs get-queue-url --queue-name fcp_audit-deadletter --query QueueUrl --output text)
+aws sqs delete-message \
+  --queue-url "$QUEUE_URL" \
+  --receipt-handle "<ReceiptHandle>"
+```
+
+If messages ended up on the dead-letter queue because of a transient issue, such as an outage, you can redrive
+them all back onto the main audit queue as follows:
+
+```shell
+aws sqs start-message-move-task \
+  --source-arn arn:aws:sqs:<region>:<account-id>:fcp_audit-deadletter \
+  --max-number-of-messages-per-second 5
+```
 
 ## CDP
 
