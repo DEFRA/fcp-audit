@@ -283,6 +283,20 @@ node scripts/send-test-event.js --rand --events 10
 node scripts/send-test-event.js --audit --events 50
 ```
 
+## Accessing the Dead Letter Queue
+
+Any events that the service can’t process will go through the standard SQS retry processing (three attempts in 
+total) before being delivered to a dead-letter queue. This dead-letter queue can be accessed in non-production 
+environments via the CDP terminal as follows:
+
+```shell
+QUEUE_URL=$(aws sqs get-queue-url --queue-name fcp_audit-deadletter --query QueueUrl --output text)
+aws sqs receive-message \
+  --queue-url "$QUEUE_URL" \
+  --max-number-of-messages 10 \
+  --wait-time-seconds 2
+```
+
 ### Notes
 
 - Events with a `security` object are forwarded to SOC but **not** persisted in MongoDB. Only events containing an `audit` object are stored.
