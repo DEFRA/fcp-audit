@@ -29,7 +29,7 @@ jobs:
         run: npm run docker:test
 
       - name: Publish Hot Fix
-        uses: DEFRA/cdp-build-action/build-hotfix@550c4792fac07cfd59eaea469bc0a17ce202cced # main
+        uses: DEFRA/cdp-build-action/build-hotfix@54ced5c5344c8b9620561a1628fe8f3d858e9871 # v1.5.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
