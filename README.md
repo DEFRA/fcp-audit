@@ -288,6 +288,40 @@ node scripts/send-test-event.js --audit --events 50
 - Events with a `security` object are forwarded to SOC but **not** persisted in MongoDB. Only events containing an `audit` object are stored.
 - When using `--rand`, the script randomly selects from all three valid applications (`Single Front Door`, `Data Access Layer`, `Grants Platform`) and their corresponding components.
 
+
+## Accessing the Dead-Letter Queue
+
+Any events that the service can’t process will go through the standard SQS retry processing (three attempts in
+total) before being delivered to a dead-letter queue. This dead-letter queue can be accessed in non-production
+environments via the CDP terminal as follows:
+
+```shell
+QUEUE_URL=$(aws sqs get-queue-url --queue-name fcp_audit-deadletter --query QueueUrl --output text)
+aws sqs receive-message \
+  --queue-url "$QUEUE_URL" \
+  --max-number-of-messages 10 \
+  --wait-time-seconds 2
+```
+
+You can delete individual messages from the dead-letter queue using the receipt handle returned by the
+`receive-message` command above:
+
+```shell
+QUEUE_URL=$(aws sqs get-queue-url --queue-name fcp_audit-deadletter --query QueueUrl --output text)
+aws sqs delete-message \
+  --queue-url "$QUEUE_URL" \
+  --receipt-handle "<ReceiptHandle>"
+```
+
+If messages ended up on the dead-letter queue because of a transient issue, such as an outage, you can redrive
+them all back onto the main audit queue as follows:
+
+```shell
+aws sqs start-message-move-task \
+  --source-arn arn:aws:sqs:<region>:<account-id>:fcp_audit-deadletter \
+  --max-number-of-messages-per-second 5
+```
+
 ## CDP
 
 The Core Delivery Platforms' (CDP) streamlined Elastic Common Schema (ECS) enforces a paired down set of keys when searching in OpenSearch (see https://portal.cdp-int.defra.cloud/documentation/how-to/logging.md). These keys don't provide a perfect mapping to the keys we log. The table below shows which event fields map to which ECS key.
