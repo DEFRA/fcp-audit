@@ -56,6 +56,25 @@ npm run docker:test:watch
 
 > Do not run `npm test` directly — environment configuration is only set correctly when running via Docker.
 
+#### Outbound Proxy Tests
+
+In CDP all outbound traffic must go through a Squid proxy. The service uses Node.js native proxy support
+(`NODE_USE_ENV_PROXY`), which only applies to the global HTTP agents. `@hapi/jwt` fetches the Entra JWKS keys using
+`@hapi/wreck`, which creates its own agents, so `setupProxy()` points Wreck at the global agents.
+
+`compose.proxy.yml` extends the test setup with a Squid proxy (configured by `test/proxy/squid.conf`). The service,
+MongoDB and Floci sit on an internal network with no route out, so any request that bypasses the proxy fails rather
+than silently succeeding.
+
+The service fetches the JWKS keys on startup (`@hapi/jwt` cache warmup) and exits if startup fails.
+`npm run docker:test:proxy` starts the service and waits for its `/health` healthcheck, so it passes only if the JWKS
+lookup succeeded through the proxy. On failure the service logs are printed, and the stack is torn down either way.
+
+```bash
+# Requires internet access to login.microsoftonline.com
+npm run docker:test:proxy
+```
+
 ## REST API
 
 The service exposes the following endpoints at `http://localhost:3004`:
@@ -122,7 +141,9 @@ The FCP Audit service can be configured using the following environment variable
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `HTTP_PROXY` | HTTP proxy URL | `null` | No |
+| `NODE_USE_ENV_PROXY` | Enable Node.js native proxy support for `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`, must be `1` (set via cdp-app-config) | unset | Yes, in CDP environments |
+| `HTTPS_PROXY` | Outbound proxy URL for HTTPS requests (set via cdp-app-config) | unset | Yes, in CDP environments |
+| `NO_PROXY` | Hosts that bypass the outbound proxy, e.g. SQS (set via cdp-app-config) | unset | Yes, in CDP environments |
 | `ENABLE_SECURE_CONTEXT` | Enable secure context | `true` (prod), `false` (dev) | No |
 | `ENABLE_METRICS` | Enable metrics reporting | `true` (prod), `false` (dev) | No |
 | `TRACING_HEADER` | CDP tracing header name | `x-cdp-request-id` | No |

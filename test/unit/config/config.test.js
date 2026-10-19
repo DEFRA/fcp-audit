@@ -16,8 +16,10 @@ describe('config', () => {
     process.env.ENVIRONMENT = 'dev'
     process.env.LOG_ENABLED = 'true'
     process.env.LOG_LEVEL = 'debug'
+    process.env.HTTPS_PROXY = 'http://proxy:3128'
+    process.env.NODE_USE_ENV_PROXY = '1'
+    process.env.NO_PROXY = 'sqs.eu-west-2.amazonaws.com'
     process.env.LOG_FORMAT = 'ecs'
-    process.env.HTTP_PROXY = 'http://proxy:8080'
     process.env.ENABLE_SECURE_CONTEXT = 'true'
     process.env.ENABLE_METRICS = 'true'
     process.env.TRACING_HEADER = 'x-custom-trace-id'
@@ -129,17 +131,6 @@ describe('config', () => {
     expect(config.get('log.format')).toBe('pino-pretty')
   })
 
-  test('should return http proxy from environment variable', async () => {
-    const { config } = await import('../../../src/config/config.js')
-    expect(config.get('httpProxy')).toBe('http://proxy:8080')
-  })
-
-  test('should return null http proxy if not provided in environment variable', async () => {
-    delete process.env.HTTP_PROXY
-    const { config } = await import('../../../src/config/config.js')
-    expect(config.get('httpProxy')).toBeNull()
-  })
-
   test('should return secure context enabled from environment variable', async () => {
     const { config } = await import('../../../src/config/config.js')
     expect(config.get('isSecureContextEnabled')).toBe(true)
@@ -173,6 +164,51 @@ describe('config', () => {
     delete process.env.TRACING_HEADER
     const { config } = await import('../../../src/config/config.js')
     expect(config.get('tracing.header')).toBe('x-cdp-request-id')
+  })
+
+  test('should return proxy settings from environment variables', async () => {
+    const { config } = await import('../../../src/config/config.js')
+    expect(config.get('proxy.httpsProxy')).toBe('http://proxy:3128')
+    expect(config.get('proxy.useEnvProxy')).toBe('1')
+    expect(config.get('proxy.noProxy')).toBe('sqs.eu-west-2.amazonaws.com')
+  })
+
+  test('should throw error if no proxy not provided in a CDP environment', async () => {
+    delete process.env.NO_PROXY
+    await expect(async () => await import('../../../src/config/config.js')).rejects.toThrow('proxy.noProxy')
+  })
+
+  test('should throw error if https proxy not provided in a CDP environment', async () => {
+    delete process.env.HTTPS_PROXY
+    await expect(async () => await import('../../../src/config/config.js')).rejects.toThrow('proxy.httpsProxy')
+  })
+
+  test('should throw error if native proxy support not enabled in a CDP environment', async () => {
+    delete process.env.NODE_USE_ENV_PROXY
+    await expect(async () => await import('../../../src/config/config.js')).rejects.toThrow('proxy.useEnvProxy')
+  })
+
+  test('should throw error if native proxy support set to a value Node.js ignores', async () => {
+    process.env.NODE_USE_ENV_PROXY = 'true'
+    await expect(async () => await import('../../../src/config/config.js')).rejects.toThrow('proxy.useEnvProxy')
+  })
+
+  test.each([
+    ['not set', undefined],
+    ['local', 'local']
+  ])('should allow proxy settings to be omitted when environment is %s', async (_name, environment) => {
+    if (environment) {
+      process.env.ENVIRONMENT = environment
+    } else {
+      delete process.env.ENVIRONMENT
+    }
+    delete process.env.HTTPS_PROXY
+    delete process.env.NODE_USE_ENV_PROXY
+    delete process.env.NO_PROXY
+    const { config } = await import('../../../src/config/config.js')
+    expect(config.get('proxy.httpsProxy')).toBeNull()
+    expect(config.get('proxy.useEnvProxy')).toBeNull()
+    expect(config.get('proxy.noProxy')).toBeNull()
   })
 
   test('should return auth enabled from environment variable', async () => {

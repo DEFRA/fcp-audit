@@ -18,6 +18,8 @@ async function startServer () {
     const logger = createLogger()
     logger.info('Server failed to start')
     logger.error(err)
+    // Exit rather than leave a process running that is not serving requests
+    process.exit(1)
   }
 
   return server

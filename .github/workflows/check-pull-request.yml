@@ -27,6 +27,11 @@ jobs:
       - name: Run Tests
         run: |
           npm run docker:test
+
+      - name: Run Outbound Proxy Tests
+        run: |
+          npm run docker:test:proxy
+
       - name: Test Docker Image Build
         run: |
           set +e
