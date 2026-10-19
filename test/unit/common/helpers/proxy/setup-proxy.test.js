@@ -1,29 +1,14 @@
-import { describe, test, expect, afterEach } from 'vitest'
-import { config } from '../../../../../src/config/config.js'
-import { getGlobalDispatcher, ProxyAgent } from 'undici'
+import { describe, test, expect } from 'vitest'
+import http from 'node:http'
+import https from 'node:https'
+import Wreck from '@hapi/wreck'
 import { setupProxy } from '../../../../../src/common/helpers/proxy/setup-proxy.js'
 
 describe('setupProxy', () => {
-  afterEach(() => {
-    config.set('httpProxy', null)
-  })
-
-  test('Should not setup proxy if the environment variable is not set', () => {
-    config.set('httpProxy', null)
+  test('Should point Wreck at the global agents so native env proxy applies', () => {
     setupProxy()
 
-    expect(global?.GLOBAL_AGENT?.HTTP_PROXY).toBeUndefined()
-
-    const undiciDispatcher = getGlobalDispatcher()
-
-    expect(undiciDispatcher).not.toBeInstanceOf(ProxyAgent)
-  })
-
-  test('Should setup proxy if the environment variable is set', () => {
-    config.set('httpProxy', 'http://localhost:8080')
-    setupProxy()
-    expect(global?.GLOBAL_AGENT?.HTTP_PROXY).toBe('http://localhost:8080')
-    const undiciDispatcher = getGlobalDispatcher()
-    expect(undiciDispatcher).toBeInstanceOf(ProxyAgent)
+    expect(Wreck.agents.https).toBe(https.globalAgent)
+    expect(Wreck.agents.http).toBe(http.globalAgent)
   })
 })

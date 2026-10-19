@@ -1,0 +1,71 @@
+# Extends compose.yml and compose.test.yml with an outbound Squid proxy (to simulate CDP)
+#
+# The service and its dependencies sit on an internal network with no route out,
+# so anything that does not go through the proxy fails rather than silently succeeding.
+#
+# Run with: npm run docker:test:proxy
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu/squid
+        RUN apt-get update && apt-get install -y curl
+    volumes:
+      - ./test/proxy/squid.conf:/etc/squid/squid.conf:ro
+    stop_grace_period: 1s
+    healthcheck:
+      # Fetch the Entra JWKS keys through squid itself, so the proxy is only healthy once it
+      # can reach the endpoint the service needs. A host without internet access fails here,
+      # before the service starts, rather than as a less obvious service startup failure.
+      test: ['CMD', 'curl', '--proxy', 'http://localhost:3128', '-fsS', '-o', '/dev/null', 'https://login.microsoftonline.com/common/discovery/v2.0/keys']
+      interval: 3s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cdp-tenant
+      - cdp-external
+
+  # Starting up fetches the Entra JWKS keys (@hapi/jwt cache warmup), so the service only
+  # becomes healthy if that request succeeds through the proxy; otherwise it exits
+  fcp-audit:
+    command: node --use-strict .
+    healthcheck:
+      test: ['CMD', 'wget', '-qO', '/dev/null', 'http://127.0.0.1:3004/health']
+      interval: 3s
+      timeout: 2s
+      retries: 10
+    depends_on:
+      proxy:
+        condition: service_healthy
+    environment:
+      # A CDP environment, so the proxy settings below are required by config validation
+      ENVIRONMENT: dev
+      NODE_USE_ENV_PROXY: 1
+      HTTPS_PROXY: http://proxy:3128
+      NO_PROXY: floci,mongodb,localhost,127.0.0.1
+      AUTH_ENABLED: true
+      AUTH_TENANT_ID: common
+      AUTH_ALLOWED_GROUP_IDS: 00000000-0000-0000-0000-000000000000
+    networks:
+      - cdp-tenant
+
+  mongodb:
+    networks:
+      - cdp-tenant
+
+  floci:
+    networks:
+      - cdp-tenant
+
+  floci-init:
+    networks:
+      - cdp-tenant
+
+networks:
+  # inside CDP: no direct route to the internet
+  cdp-tenant:
+    internal: true
+  # outside CDP: only the proxy is attached
+  cdp-external:
+    driver: bridge
