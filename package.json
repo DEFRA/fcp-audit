@@ -13,8 +13,8 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "postinstall": "npm run setup:husky",
-    "server:debug": "nodemon --inspect-brk=0.0.0.0 --ext js,json --legacy-watch ./src",
-    "server:watch": "nodemon --inspect=0.0.0.0 --ext js,json --legacy-watch ./src",
+    "server:debug": "node --inspect-brk=0.0.0.0 --watch-path=./src ./src/index.js",
+    "server:watch": "node --inspect=0.0.0.0 --watch-path=./src ./src/index.js",
     "setup:husky": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module",
     "start": "NODE_ENV=production node --use-strict .",
     "test": "TZ=UTC vitest run --coverage",
@@ -60,7 +60,6 @@
     "eslint": "9.29.0",
     "husky": "9.1.7",
     "neostandard": "0.12.1",
-    "nodemon": "3.1.14",
     "vitest": "4.1.11"
   }
 }
