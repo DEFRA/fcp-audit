@@ -21,7 +21,8 @@
     "test:watch": "TZ=UTC vitest",
     "docker:test": "npm run lint && mkdir -p -m 755 coverage 2>/dev/null || true && docker compose -p fcp-audit-test down -v && docker compose -f compose.yml -f compose.test.yml run --build --rm fcp-audit",
     "docker:test:watch": "docker compose -p fcp-audit-test down -v && docker compose -f compose.yml -f compose.test.yml -f compose.test.watch.yml run --build --rm fcp-audit",
-    "docker:test:proxy": "./scripts/test-proxy.sh"
+    "docker:test:proxy": "./scripts/test-proxy.sh",
+    "check:synthetic-ids": "sfd-id-check --staged"
   },
   "author": "Defra DDTS",
   "contributors": [
@@ -58,6 +59,7 @@
   "devDependencies": {
     "@vitest/coverage-v8": "4.1.12",
     "eslint": "9.29.0",
+    "fcp-sfd-core": "github:DEFRA/fcp-sfd-core#95f58ade56b2d0dd0f15bdcba6a5f37a54bcc939",
     "husky": "9.1.7",
     "neostandard": "0.12.1",
     "vitest": "4.1.12"
