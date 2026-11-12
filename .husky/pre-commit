@@ -1,1 +1,2 @@
 npm run git:pre-commit-hook
+npm run check:synthetic-ids
