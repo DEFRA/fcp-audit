@@ -47,7 +47,14 @@ export async function createMongoDbConnection (options) {
 }
 
 export async function closeMongoDbConnection () {
-  await mongo.client?.close(true)
+  try {
+    await mongo.client?.close(true)
+  } finally {
+    mongo.client = undefined
+    mongo.db = undefined
+    mongo.databaseName = undefined
+    mongo.collections = {}
+  }
 }
 
 export function getMongoDb () {
