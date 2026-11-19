@@ -18,6 +18,7 @@ import { auth } from './plugins/auth.js'
 import { mongoTimeout } from './plugins/mongo-timeout.js'
 import { apiAudit } from './plugins/api-audit.js'
 import { polling } from './common/helpers/polling.js'
+import { runHealthChecks } from './common/helpers/health/index.js'
 
 async function createServer () {
   setupProxy()
@@ -62,6 +63,11 @@ async function createServer () {
     requestLogger,
     requestTracing,
     secureContext,
+  ])
+
+  await runHealthChecks()
+
+  await server.register([
     pulse,
     mongoDb,
     router,

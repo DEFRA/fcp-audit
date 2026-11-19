@@ -81,6 +81,8 @@ describe('startServer', () => {
   })
 
   afterAll(() => {
+    createServerSpy.mockRestore()
+    hapiServerSpy.mockRestore()
     process.env = PROCESS_ENV
   })
 
@@ -99,8 +101,11 @@ describe('startServer', () => {
       expect(hapiServerSpy).toHaveBeenCalled()
       expect(startPolling).toHaveBeenCalled()
 
+      expect(createServerSpy.mock.invocationCallOrder[0])
+        .toBeLessThan(mockRunHealthChecks.mock.invocationCallOrder[0])
+
       expect(mockRunHealthChecks.mock.invocationCallOrder[0])
-        .toBeLessThan(createServerSpy.mock.invocationCallOrder[0])
+        .toBeLessThan(startPolling.mock.invocationCallOrder[0])
 
       expect(mockHapiLoggerInfo).toHaveBeenNthCalledWith(
         1,
@@ -141,7 +146,7 @@ describe('startServer', () => {
       processExitSpy.mockRestore()
     })
 
-    test('Should wait for health checks before creating server', async () => {
+    test('Should wait for health checks before starting polling', async () => {
       let resolveChecks
 
       mockRunHealthChecks.mockImplementationOnce(
@@ -150,31 +155,29 @@ describe('startServer', () => {
         })
       )
 
-      const mockServer = {
-        start: vi.fn().mockResolvedValue(undefined),
-        logger: { info: vi.fn() }
-      }
-
-      createServerSpy.mockResolvedValueOnce(mockServer)
-
       const starting = startServerImport.startServer()
 
-      expect(mockRunHealthChecks).toHaveBeenCalledOnce()
-      expect(createServerSpy).not.toHaveBeenCalled()
-      expect(mockServer.start).not.toHaveBeenCalled()
+      await vi.waitFor(() => {
+        expect(mockRunHealthChecks).toHaveBeenCalledOnce()
+      })
+
+      expect(mockHapiLoggerInfo).toHaveBeenCalledWith(
+        'Custom secure context is disabled'
+      )
+
+      expect(mockHapiLoggerInfo.mock.invocationCallOrder[0])
+        .toBeLessThan(mockRunHealthChecks.mock.invocationCallOrder[0])
+
       expect(startPolling).not.toHaveBeenCalled()
 
       resolveChecks()
 
-      await expect(starting).resolves.toBe(mockServer)
+      const server = await starting
 
-      expect(createServerSpy).toHaveBeenCalledOnce()
-      expect(mockServer.start).toHaveBeenCalledOnce()
-
-      expect(mockRunHealthChecks.mock.invocationCallOrder[0])
-        .toBeLessThan(createServerSpy.mock.invocationCallOrder[0])
-
+      expect(startPolling).toHaveBeenCalledOnce()
       expect(processExitSpy).not.toHaveBeenCalled()
+
+      await server.stop({ timeout: 0 })
     })
 
     test.each(['mongo', 'sqs', 'sns'])(
@@ -192,8 +195,8 @@ describe('startServer', () => {
         ).resolves.toBeUndefined()
 
         expect(mockRunHealthChecks).toHaveBeenCalledOnce()
-        expect(createServerSpy).not.toHaveBeenCalled()
-        expect(hapiServerSpy).not.toHaveBeenCalled()
+        expect(createServerSpy).toHaveBeenCalledOnce()
+        expect(hapiServerSpy).toHaveBeenCalledOnce()
         expect(startPolling).not.toHaveBeenCalled()
 
         expect(mockLoggerInfo).toHaveBeenCalledWith(
@@ -208,25 +211,34 @@ describe('startServer', () => {
   describe('When server start fails', () => {
     let processExitSpy
 
-    beforeAll(() => {
-      createServerSpy.mockRejectedValue(new Error('Server failed to start'))
-      processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {})
+    beforeEach(() => {
+      vi.clearAllMocks()
+
+      mockRunHealthChecks.mockResolvedValue(undefined)
+      createServerSpy.mockRejectedValueOnce(
+        new Error('Server failed to start')
+      )
+
+      processExitSpy = vi.spyOn(process, 'exit')
+        .mockImplementation(() => {})
     })
 
-    afterAll(() => {
+    afterEach(() => {
       processExitSpy.mockRestore()
     })
 
     test('Should log failed startup message', async () => {
       await startServerImport.startServer()
 
-      expect(mockLoggerInfo).toHaveBeenCalledWith('Server failed to start')
+      expect(mockLoggerInfo).toHaveBeenCalledWith(
+        'Server failed to start'
+      )
       expect(mockLoggerError).toHaveBeenCalledWith(
         new Error('Server failed to start')
       )
     })
 
-    test('Should exit the process with a failure code', async () => {
+    test('Shold exit the process with a failure code', async () => {
       await startServerImport.startServer()
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
