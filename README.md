@@ -119,6 +119,7 @@ The FCP Audit service can be configured using the following environment variable
 | `AWS_ACCESS_KEY_ID` | AWS access key ID | `null` | No |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret access key | `null` | No |
 | `AWS_SQS_QUEUE_URL` | SQS queue URL for event consumption | `null` | Yes |
+| `AUDIT_INTERNAL_PUBLISH_SNS_TOPIC_ARN` | SNS topic ARN used to publish API audit events | `null` | Yes |
 
 ### MongoDB
 
@@ -128,6 +129,8 @@ The FCP Audit service can be configured using the following environment variable
 | `MONGO_DATABASE` | MongoDB database name | `fcp-audit` | No |
 | `MONGO_RETRY_WRITES` | Enable MongoDB write retries | `null` | No |
 | `MONGO_READ_PREFERENCE` | MongoDB read preference | `null` | No |
+| `MONGO_SERVER_SELECTION_TIMEOUT_MS` | Maximum time in milliseconds to select a suitable MongoDB server | `10000` | No |
+| `MONGO_CONNECT_TIMEOUT_MS` | Maximum time in milliseconds to establish a MongoDB TCP connection | `10000` | No |
 
 ### Logging
 
@@ -156,6 +159,10 @@ The FCP Audit service can be configured using the following environment variable
 | `AUTH_ENABLED` | Enable authentication | `true` | No |
 | `AUTH_TENANT_ID` | Microsoft Entra ID tenant ID | `null` | If Auth Enabled |
 | `AUTH_ALLOWED_GROUP_IDS` | Comma-separated allowed security group IDs | `null` | If Auth Enabled |
+
+### Startup Health Checks
+
+Before starting the server, fcp-audit verifies access to MongoDB, the configured SQS queue and the SNS topic used for publishing API audit events. If any check fails, the service logs the failure and exits with code 1. SQS polling only begins once all checks have succeeded. These checks verify resource accessibility at startup and do not replace ongoing dependency monitoring.
 
 ## Using Audit in Your Docker Compose
 
@@ -190,6 +197,7 @@ services:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       AWS_SQS_QUEUE_URL: http://floci:4566/000000000000/fcp_audit
+      AUDIT_INTERNAL_PUBLISH_SNS_TOPIC_ARN: arn:aws:sns:eu-west-2:000000000000:fcp_audit_publisher_stub
       AWS_ENDPOINT_URL: http://floci:4566
     ports:
       - '3004:3004'
