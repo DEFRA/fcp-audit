@@ -180,6 +180,18 @@ const config = convict({
         format: Number,
         default: 30040,
         env: 'MONGO_MAX_IDLE_TIME_MS'
+      },
+      serverSelectionTimeoutMS: {
+        doc: 'How long to wait for a suitable MongoDB server before failing an operation, including the startup health check',
+        format: 'nat',
+        default: 10000,
+        env: 'MONGO_SERVER_SELECTION_TIMEOUT_MS'
+      },
+      connectTimeoutMS: {
+        doc: 'How long to wait for a TCP connection to MongoDB to be established',
+        format: 'nat',
+        default: 10000,
+        env: 'MONGO_CONNECT_TIMEOUT_MS'
       }
     }
   },

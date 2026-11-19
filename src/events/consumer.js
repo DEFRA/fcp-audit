@@ -1,10 +1,9 @@
-import { ReceiveMessageCommand, DeleteMessageBatchCommand, SQSClient } from '@aws-sdk/client-sqs'
+import { ReceiveMessageCommand, DeleteMessageBatchCommand } from '@aws-sdk/client-sqs'
 import { config } from '../config/config.js'
 import { processEvent } from './process.js'
+import { sqsClient } from '../common/helpers/sqs.js'
 
 const { sqs } = config.get('aws')
-
-const sqsClient = new SQSClient()
 
 const receiveParams = {
   QueueUrl: sqs.queueUrl,

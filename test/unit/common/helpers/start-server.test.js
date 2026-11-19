@@ -1,4 +1,4 @@
-import { describe, vi, beforeAll, afterAll, test, expect } from 'vitest'
+import { describe, vi, beforeAll, afterAll, beforeEach, afterEach, test, expect } from 'vitest'
 import Hapi from '@hapi/hapi'
 
 const mockLoggerInfo = vi.fn()
@@ -6,6 +6,7 @@ const mockLoggerError = vi.fn()
 
 const mockHapiLoggerInfo = vi.fn()
 const mockHapiLoggerError = vi.fn()
+const mockRunHealthChecks = vi.fn()
 
 vi.mock('hapi-pino', () => ({
   default: {
@@ -24,6 +25,10 @@ vi.mock('../../../../src/common/helpers/logging/logger.js', () => ({
     info: (...args) => mockLoggerInfo(...args),
     error: (...args) => mockLoggerError(...args)
   })
+}))
+
+vi.mock('../../../../src/common/helpers/health/index.js', () => ({
+  runHealthChecks: mockRunHealthChecks
 }))
 
 vi.mock('../../../../src/events/polling.js', () => ({
@@ -55,15 +60,21 @@ describe('startServer', () => {
   let hapiServerSpy
   let startServerImport
   let createServerImport
+  let startPolling
 
   beforeAll(async () => {
     process.env = { ...PROCESS_ENV }
     process.env.PORT = '3098' // Set to obscure port to avoid conflicts
 
+    mockRunHealthChecks.mockResolvedValue(undefined)
+
     createServerImport = await import('../../../../src/server.js')
     startServerImport = await import(
       '../../../../src/common/helpers/start-server.js'
     )
+
+    const pollingImport = await import('../../../../src/events/polling.js')
+    startPolling = pollingImport.startPolling
 
     createServerSpy = vi.spyOn(createServerImport, 'createServer')
     hapiServerSpy = vi.spyOn(Hapi, 'server')
@@ -83,8 +94,14 @@ describe('startServer', () => {
     test('Should start up server as expected', async () => {
       server = await startServerImport.startServer()
 
+      expect(mockRunHealthChecks).toHaveBeenCalledOnce()
       expect(createServerSpy).toHaveBeenCalled()
       expect(hapiServerSpy).toHaveBeenCalled()
+      expect(startPolling).toHaveBeenCalled()
+
+      expect(mockRunHealthChecks.mock.invocationCallOrder[0])
+        .toBeLessThan(createServerSpy.mock.invocationCallOrder[0])
+
       expect(mockHapiLoggerInfo).toHaveBeenNthCalledWith(
         1,
         'Custom secure context is disabled'
@@ -106,6 +123,86 @@ describe('startServer', () => {
         'Access your backend on http://localhost:3098'
       )
     })
+  })
+
+  describe('When startup health checks run', () => {
+    let processExitSpy
+
+    beforeEach(() => {
+      vi.clearAllMocks()
+      mockRunHealthChecks.mockReset()
+      mockRunHealthChecks.mockResolvedValue(undefined)
+
+      processExitSpy = vi.spyOn(process, 'exit')
+        .mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+      processExitSpy.mockRestore()
+    })
+
+    test('Should wait for health checks before creating server', async () => {
+      let resolveChecks
+
+      mockRunHealthChecks.mockImplementationOnce(
+        () => new Promise((resolve) => {
+          resolveChecks = resolve
+        })
+      )
+
+      const mockServer = {
+        start: vi.fn().mockResolvedValue(undefined),
+        logger: { info: vi.fn() }
+      }
+
+      createServerSpy.mockResolvedValueOnce(mockServer)
+
+      const starting = startServerImport.startServer()
+
+      expect(mockRunHealthChecks).toHaveBeenCalledOnce()
+      expect(createServerSpy).not.toHaveBeenCalled()
+      expect(mockServer.start).not.toHaveBeenCalled()
+      expect(startPolling).not.toHaveBeenCalled()
+
+      resolveChecks()
+
+      await expect(starting).resolves.toBe(mockServer)
+
+      expect(createServerSpy).toHaveBeenCalledOnce()
+      expect(mockServer.start).toHaveBeenCalledOnce()
+
+      expect(mockRunHealthChecks.mock.invocationCallOrder[0])
+        .toBeLessThan(createServerSpy.mock.invocationCallOrder[0])
+
+      expect(processExitSpy).not.toHaveBeenCalled()
+    })
+
+    test.each(['mongo', 'sqs', 'sns'])(
+      'Should prevent server startup when %s health check fails',
+      async (name) => {
+        const error = new AggregateError(
+          [new Error(`${name} unavailable`)],
+              `Startup health checks failed: ${name}`
+        )
+
+        mockRunHealthChecks.mockRejectedValueOnce(error)
+
+        await expect(
+          startServerImport.startServer()
+        ).resolves.toBeUndefined()
+
+        expect(mockRunHealthChecks).toHaveBeenCalledOnce()
+        expect(createServerSpy).not.toHaveBeenCalled()
+        expect(hapiServerSpy).not.toHaveBeenCalled()
+        expect(startPolling).not.toHaveBeenCalled()
+
+        expect(mockLoggerInfo).toHaveBeenCalledWith(
+          'Server failed to start'
+        )
+        expect(mockLoggerError).toHaveBeenCalledWith(error)
+        expect(processExitSpy).toHaveBeenCalledWith(1)
+      }
+    )
   })
 
   describe('When server start fails', () => {

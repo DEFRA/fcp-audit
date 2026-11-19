@@ -2,11 +2,14 @@ import { config } from '../../config/config.js'
 
 import { createServer } from '../../server.js'
 import { createLogger } from './logging/logger.js'
+import { runHealthChecks } from './health/index.js'
 
 async function startServer () {
   let server
 
   try {
+    await runHealthChecks()
+
     server = await createServer()
     await server.start()
 
