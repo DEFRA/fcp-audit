@@ -1,31 +1,37 @@
-import { GetTopicAttributesCommand } from '@aws-sdk/client-sns'
-import { config } from '../../../config/config.js'
-import { snsClient } from '../sns.js'
+import { publishAuditEvent } from '@defra/fcp-audit-publisher'
+import { getPublisherConfig } from '../../../plugins/api-audit.js'
 import { createLogger } from '../logging/logger.js'
 
 const logger = createLogger()
 
-export const healthCheck = async () => {
-  const topicArn = config.get('aws.sns.topicArn')
+const STARTUP_ENTITY_ID = 'fcp-audit startup healthcheck'
 
+export const healthCheck = async () => {
   try {
-    if (!topicArn) {
+    const publisherConfig = getPublisherConfig()
+
+    if (!publisherConfig.sns.topicArn) {
       throw new Error('AUDIT_INTERNAL_PUBLISH_SNS_TOPIC_ARN is not set')
     }
 
-    logger.info(`Checking SNS topic ${topicArn}`)
-
-    const { Attributes } = await snsClient.send(
-      new GetTopicAttributesCommand({ TopicArn: topicArn })
-    )
-
-    if (Attributes?.TopicArn !== topicArn) {
-      throw new Error('SNS returned an unexpected topic ARN')
+    const event = {
+      ip: '127.0.0.1',
+      user: 'startup-healthcheck',
+      audit: {
+        entities: [{
+          entity: 'audit',
+          action: 'created',
+          entityid: STARTUP_ENTITY_ID
+        }],
+        status: 'success'
+      }
     }
 
-    logger.info('SUCCESS: Connected to SNS topic')
+    const { messageId } = await publishAuditEvent(event, publisherConfig)
+
+    logger.info(`SUCCESS: Published startup audit event to SNS: messageId=${messageId}`)
   } catch (err) {
-    logger.error(err, 'Error connecting to SNS topic')
+    logger.error(err, 'Error publishing startup audit event to SNS')
     throw err
   }
 }
