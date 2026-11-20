@@ -50,9 +50,9 @@ export async function closeMongoDbConnection () {
   try {
     await mongo.client?.close(true)
   } finally {
-    mongo.client = undefined
-    mongo.db = undefined
-    mongo.databaseName = undefined
+    mongo.client = null
+    mongo.db = null
+    mongo.databaseName = null
     mongo.collections = {}
   }
 }
