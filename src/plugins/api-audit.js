@@ -42,6 +42,15 @@ export const apiAudit = {
   }
 }
 
+export const getPublisherConfig = () => ({
+  snsClient,
+  sns: { topicArn: TOPIC_ARN },
+  environment: ENVIRONMENT_NAME,
+  application: APPLICATION,
+  component: COMPONENT,
+  generateCorrelationId: true
+})
+
 function shouldAudit (request) {
   return Boolean(request.route.settings.plugins.apiAudit)
 }
@@ -91,13 +100,6 @@ async function publishApiAuditEvent (request, status) {
         }
       }
     },
-    {
-      snsClient,
-      sns: { topicArn: TOPIC_ARN },
-      environment: ENVIRONMENT_NAME,
-      application: APPLICATION,
-      component: COMPONENT,
-      generateCorrelationId: true
-    }
+    getPublisherConfig()
   )
 }
