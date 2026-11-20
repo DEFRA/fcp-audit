@@ -238,7 +238,7 @@ describe('startServer', () => {
       )
     })
 
-    test('Shold exit the process with a failure code', async () => {
+    test('Should exit the process with a failure code', async () => {
       await startServerImport.startServer()
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
