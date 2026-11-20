@@ -396,4 +396,24 @@ describe('config', () => {
     const { config } = await import('../../../src/config/config.js')
     expect(config.get('soc.enabled')).toBe(true)
   })
+
+  test.each([
+    ['MONGO_SERVER_SELECTION_TIMEOUT_MS', 'serverSelectionTimeoutMS'],
+    ['MONGO_CONNECT_TIMEOUT_MS', 'connectTimeoutMS']
+  ])('should configure %s', async (envName, optionName) => {
+    process.env[envName] = '15000'
+
+    const { config } = await import('../../../src/config/config.js')
+
+    expect(config.get(`mongo.mongoOptions.${optionName}`)).toBe(15000)
+  })
+
+  test.each([
+    'MONGO_SERVER_SELECTION_TIMEOUT_MS',
+    'MONGO_CONNECT_TIMEOUT_MS'
+  ])('should reject invalid %s', async (envName) => {
+    process.env[envName] = 'not-a-number'
+
+    await expect(import('../../../src/config/config.js')).rejects.toThrow()
+  })
 })
